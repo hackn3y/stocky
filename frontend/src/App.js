@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar } from 'recharts';
-import { TrendingUp, TrendingDown, Activity, AlertCircle, Info, Moon, Sun, Star, StarOff, BarChart3, Download, Share2, Clock, ChevronDown, ChevronUp, User, LogOut, Search } from 'lucide-react';
-import Watchlist from './Watchlist';
+import { TrendingUp, TrendingDown, Activity, Info, Moon, Sun, Star, StarOff, BarChart3, Download, Share2, Clock, ChevronDown, ChevronUp, User, LogOut, Search } from 'lucide-react';
+import WatchlistEnhanced from './WatchlistEnhanced';
 import ComparisonView from './ComparisonView';
 import Portfolio from './Portfolio';
 import AccuracyTracker from './AccuracyTracker';
@@ -16,6 +16,10 @@ import AIAssistant from './AIAssistant';
 import PaperTrading from './PaperTrading';
 import TechnicalChart from './TechnicalChart';
 import PerformanceAnalytics from './PerformanceAnalytics';
+import MobileNav from './MobileNav';
+import { ToastContainer, useToast } from './Toast';
+import { ErrorDisplay, NetworkStatus, useNetworkStatus, withRetry } from './ErrorRecovery';
+import { PredictionSkeleton, ChartSkeleton } from './LoadingSkeletons';
 import { useAuth } from './AuthContext';
 import { exportToCSV, sharePrediction, copyToClipboard } from './utils';
 import './index.css';
@@ -40,32 +44,13 @@ const saveToStorage = (key, value) => {
   }
 };
 
-// Loading Skeleton Component
-const LoadingSkeleton = () => (
-  <div className="animate-pulse">
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {[1, 2, 3, 4].map((i) => (
-        <div key={i} className="p-6 bg-gray-100 rounded-lg border-2 border-gray-200">
-          <div className="h-4 bg-gray-300 rounded w-1/3 mb-4"></div>
-          <div className="h-10 bg-gray-300 rounded w-2/3 mb-2"></div>
-          <div className="h-3 bg-gray-300 rounded w-1/2"></div>
-        </div>
-      ))}
-    </div>
-  </div>
-);
-
-// Chart Loading Skeleton
-const ChartSkeleton = () => (
-  <div className="animate-pulse">
-    <div className="h-4 bg-gray-300 rounded w-1/4 mb-6"></div>
-    <div className="h-64 bg-gray-100 rounded"></div>
-  </div>
-);
-
 function App() {
   // Auth
   const { user, isAuthenticated, updateUser, logout } = useAuth();
+
+  // Toast and Network Status
+  const { toasts, addToast, removeToast } = useToast();
+  const isOnline = useNetworkStatus();
 
   // Existing state
   const [symbol, setSymbol] = useState('SPY');
@@ -102,13 +87,17 @@ function App() {
   // Refs
   const searchInputRef = useRef(null);
 
-  // Fetch prediction
+  // Fetch prediction with retry and toast
   const getPrediction = async (ticker = symbol) => {
     setLoading(true);
     setError(null);
 
     try {
-      const response = await axios.get(`${API_URL}/predict/${ticker}`);
+      const response = await withRetry(
+        () => axios.get(`${API_URL}/predict/${ticker}`),
+        3,
+        1000
+      );
 
       if (response.data.success) {
         setPrediction(response.data);
@@ -132,11 +121,18 @@ function App() {
         if (isAuthenticated && updateUser) {
           updateUser({ predictions: updatedPredictions });
         }
+
+        // Success toast
+        addToast(`Prediction for ${ticker}: ${response.data.prediction}`, 'success', 3000);
       } else {
-        setError(response.data.error || 'Failed to get prediction');
+        const errorMsg = response.data.error || 'Failed to get prediction';
+        setError(errorMsg);
+        addToast(errorMsg, 'error');
       }
     } catch (err) {
-      setError(err.response?.data?.error || err.message || 'Network error');
+      const errorMsg = err.response?.data?.error || err.message || 'Network error - please check your connection';
+      setError(errorMsg);
+      addToast(errorMsg, 'error');
       console.error('Prediction error:', err);
     } finally {
       setLoading(false);
@@ -304,6 +300,20 @@ function App() {
 
   const isInWatchlist = (ticker) => watchlist.includes(ticker);
 
+  // Bulk watchlist refresh
+  const bulkRefreshWatchlist = async (symbols) => {
+    try {
+      addToast(`Refreshing ${symbols.length} symbols...`, 'info', 2000);
+      const response = await axios.post(`${API_URL}/predict/batch`, { symbols });
+      if (response.data.success) {
+        addToast(`Successfully refreshed ${response.data.predictions.length} symbols`, 'success');
+      }
+    } catch (err) {
+      addToast('Failed to refresh watchlist', 'error');
+      console.error('Bulk refresh error:', err);
+    }
+  };
+
   // Comparison functions
   const fetchComparisonData = async () => {
     try {
@@ -448,7 +458,7 @@ function App() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+      <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8" id="dashboard">
         {/* Search Form */}
         <div className={`${cardBg} rounded-lg shadow-md p-6 mb-6`}>
           <div className="relative">
@@ -576,8 +586,8 @@ function App() {
           </div>
         </div>
 
-        {/* Watchlist */}
-        <Watchlist
+        {/* Watchlist Enhanced */}
+        <WatchlistEnhanced
           watchlist={watchlist}
           onRemove={removeFromWatchlist}
           onSelect={(ticker) => {
@@ -586,6 +596,7 @@ function App() {
             getHistoricalData(ticker);
             getStockInfo(ticker);
           }}
+          onBulkRefresh={bulkRefreshWatchlist}
           darkMode={darkMode}
         />
 
@@ -622,15 +633,19 @@ function App() {
           darkMode={darkMode}
         />
 
-        {/* Error Message */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 flex items-start">
-            <AlertCircle className="h-5 w-5 text-red-600 mr-3 mt-0.5" />
-            <div>
-              <h3 className="font-semibold text-red-800">Error</h3>
-              <p className="text-red-700">{error}</p>
-            </div>
-          </div>
+        {/* Error Message with Retry */}
+        {error && !loading && (
+          <ErrorDisplay
+            error={error}
+            onRetry={() => {
+              setError(null);
+              getPrediction(symbol);
+              getHistoricalData(symbol);
+              getStockInfo(symbol);
+            }}
+            darkMode={darkMode}
+            context="fetching prediction data"
+          />
         )}
 
         {/* How It Works Modal */}
@@ -720,10 +735,7 @@ function App() {
 
         {/* Prediction Card */}
         {loading && !prediction ? (
-          <div className={`${cardBg} rounded-lg shadow-md p-6 mb-6`}>
-            <h2 className={`text-2xl font-bold mb-6 ${textPrimary}`}>Loading Prediction...</h2>
-            <LoadingSkeleton />
-          </div>
+          <PredictionSkeleton darkMode={darkMode} />
         ) : prediction ? (
           <div className={`${cardBg} rounded-lg shadow-md p-6 mb-6`}>
             <h2 className={`text-2xl font-bold mb-6 ${textPrimary}`}>
@@ -868,9 +880,7 @@ function App() {
 
         {/* Historical Chart */}
         {loading && historicalData.length === 0 ? (
-          <div className={`${cardBg} rounded-lg shadow-md p-6`}>
-            <ChartSkeleton />
-          </div>
+          <ChartSkeleton darkMode={darkMode} />
         ) : historicalData.length > 0 ? (
           <div className={`${cardBg} rounded-lg shadow-md p-6`}>
             <div className="flex justify-between items-center mb-6">
@@ -971,35 +981,47 @@ function App() {
         )}
 
         {/* Technical Chart with Indicators */}
-        <TechnicalChart
-          historicalData={historicalData}
-          darkMode={darkMode}
-          symbol={symbol}
-        />
+        <div id="technical">
+          <TechnicalChart
+            historicalData={historicalData}
+            darkMode={darkMode}
+            symbol={symbol}
+          />
+        </div>
 
         {/* Paper Trading Simulator */}
-        <PaperTrading
-          darkMode={darkMode}
-          currentSymbol={symbol}
-          currentPrice={prediction?.current_price}
-          prediction={prediction}
-        />
+        <div id="trading">
+          <PaperTrading
+            darkMode={darkMode}
+            currentSymbol={symbol}
+            currentPrice={prediction?.current_price}
+            prediction={prediction}
+          />
+        </div>
 
         {/* Performance Analytics */}
-        <PerformanceAnalytics predictions={predictions} darkMode={darkMode} />
+        <div id="performance">
+          <PerformanceAnalytics predictions={predictions} darkMode={darkMode} />
+        </div>
 
         {/* Social Feed */}
-        <SocialFeed darkMode={darkMode} />
+        <div id="social">
+          <SocialFeed darkMode={darkMode} />
+        </div>
 
         {/* Backtesting Dashboard */}
-        <BacktestingDashboard predictions={predictions} darkMode={darkMode} />
+        <div id="backtesting">
+          <BacktestingDashboard predictions={predictions} darkMode={darkMode} />
+        </div>
 
         {/* Alerts Panel */}
-        <AlertsPanel
-          darkMode={darkMode}
-          symbol={symbol}
-          currentPrice={prediction?.current_price}
-        />
+        <div id="alerts">
+          <AlertsPanel
+            darkMode={darkMode}
+            symbol={symbol}
+            currentPrice={prediction?.current_price}
+          />
+        </div>
 
         {/* Disclaimer */}
         <div className="mt-8 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
@@ -1027,6 +1049,22 @@ function App() {
 
       {/* AI Assistant */}
       <AIAssistant darkMode={darkMode} symbol={symbol} prediction={prediction} />
+
+      {/* Toast Notifications */}
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
+
+      {/* Network Status Indicator */}
+      <NetworkStatus isOnline={isOnline} />
+
+      {/* Mobile Navigation */}
+      <MobileNav
+        darkMode={darkMode}
+        onNavigate={(id) => {
+          if (id === 'info') {
+            setShowHowItWorks(true);
+          }
+        }}
+      />
     </div>
   );
 }
