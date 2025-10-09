@@ -239,6 +239,58 @@ def predict_batch():
             'details': str(e)
         }), 400
 
+# Stock news endpoint
+@app.route('/api/news/<symbol>', methods=['GET'])
+def get_stock_news(symbol):
+    """
+    Get latest news for a stock symbol
+
+    Parameters:
+    - symbol: Stock ticker
+
+    Returns:
+    - news: List of news articles with title, publisher, link, publish time
+    """
+    try:
+        symbol = symbol.upper()
+        ticker = yf.Ticker(symbol)
+        news = ticker.news
+
+        if not news:
+            return jsonify({
+                'success': True,
+                'symbol': symbol,
+                'news': [],
+                'message': 'No news available for this symbol'
+            })
+
+        # Format news data - limit to 10 most recent articles
+        formatted_news = []
+        for article in news[:10]:
+            formatted_news.append({
+                'title': article.get('title', 'No title'),
+                'publisher': article.get('publisher', 'Unknown'),
+                'link': article.get('link', ''),
+                'publish_time': datetime.fromtimestamp(article.get('providerPublishTime', 0)).isoformat() if article.get('providerPublishTime') else None,
+                'type': article.get('type', 'STORY'),
+                'thumbnail': article.get('thumbnail', {}).get('resolutions', [{}])[0].get('url', '') if article.get('thumbnail') else ''
+            })
+
+        return jsonify({
+            'success': True,
+            'symbol': symbol,
+            'news': formatted_news,
+            'count': len(formatted_news),
+            'timestamp': datetime.now().isoformat()
+        })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': 'Failed to fetch news',
+            'details': str(e)
+        }), 400
+
 # List supported assets
 @app.route('/api/assets', methods=['GET'])
 def list_assets():
@@ -288,6 +340,7 @@ if __name__ == '__main__':
     print("  GET  /api/predict/<symbol>    - Get prediction for symbol")
     print("  GET  /api/historical/<symbol> - Get historical data")
     print("  GET  /api/info/<symbol>       - Get stock information")
+    print("  GET  /api/news/<symbol>       - Get stock news")
     print("  POST /api/predict/batch       - Batch predictions")
     print("  GET  /api/assets              - List supported assets")
     print(f"\nServer starting on port {port}")

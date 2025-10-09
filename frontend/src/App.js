@@ -1,9 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { TrendingUp, TrendingDown, Activity, AlertCircle, Info, Moon, Sun, Star, StarOff, BarChart3, X } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar } from 'recharts';
+import { TrendingUp, TrendingDown, Activity, AlertCircle, Info, Moon, Sun, Star, StarOff, BarChart3, Download, Share2, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import Watchlist from './Watchlist';
 import ComparisonView from './ComparisonView';
+import Portfolio from './Portfolio';
+import AccuracyTracker from './AccuracyTracker';
+import ProgressBar from './ProgressBar';
+import NewsPanel from './NewsPanel';
+import { exportToCSV, sharePrediction, copyToClipboard } from './utils';
 import './index.css';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
@@ -66,6 +71,18 @@ function App() {
   const [comparisonSymbols, setComparisonSymbols] = useState(['SPY', 'QQQ', 'VOO']);
   const [comparisonData, setComparisonData] = useState([]);
 
+  // More new features
+  const [searchHistory, setSearchHistory] = useState(() => getFromStorage('searchHistory', []));
+  const [showHistory, setShowHistory] = useState(false);
+  const [portfolio, setPortfolio] = useState(() => getFromStorage('portfolio', []));
+  const [predictions, setPredictions] = useState(() => getFromStorage('predictions', []));
+  const [showDetails, setShowDetails] = useState(false);
+  const [chartType, setChartType] = useState('line');
+  const [shareMenu, setShareMenu] = useState(false);
+
+  // Refs
+  const searchInputRef = useRef(null);
+
   // Fetch prediction
   const getPrediction = async (ticker = symbol) => {
     setLoading(true);
@@ -76,6 +93,20 @@ function App() {
 
       if (response.data.success) {
         setPrediction(response.data);
+
+        // Add to search history (unique, max 10)
+        const newHistory = [ticker, ...searchHistory.filter(s => s !== ticker)].slice(0, 10);
+        setSearchHistory(newHistory);
+
+        // Add to predictions tracker
+        const newPrediction = {
+          symbol: ticker,
+          prediction: response.data.prediction,
+          confidence: response.data.confidence,
+          date: new Date().toISOString(),
+          actual: null // Will be resolved later
+        };
+        setPredictions([newPrediction, ...predictions].slice(0, 50));
       } else {
         setError(response.data.error || 'Failed to get prediction');
       }
@@ -153,6 +184,44 @@ function App() {
     saveToStorage('watchlist', watchlist);
   }, [watchlist]);
 
+  // Save other state to localStorage
+  useEffect(() => {
+    saveToStorage('searchHistory', searchHistory);
+  }, [searchHistory]);
+
+  useEffect(() => {
+    saveToStorage('portfolio', portfolio);
+  }, [portfolio]);
+
+  useEffect(() => {
+    saveToStorage('predictions', predictions);
+  }, [predictions]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      // D for dark mode (when not typing in input)
+      if (e.key === 'd' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+        toggleDarkMode();
+      }
+      // / to focus search
+      if (e.key === '/' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+      // Escape to close modals
+      if (e.key === 'Escape') {
+        setShowComparison(false);
+        setShowHowItWorks(false);
+        setShareMenu(false);
+        setShowHistory(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [darkMode]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Dark mode toggle
   const toggleDarkMode = () => setDarkMode(!darkMode);
 
@@ -194,6 +263,49 @@ function App() {
     }
   };
 
+  // Portfolio handlers
+  const addToPortfolio = async (stock) => {
+    // Get current price
+    try {
+      const response = await axios.get(`${API_URL}/predict/${stock.symbol}`);
+      if (response.data.success) {
+        const newStock = { ...stock, currentPrice: response.data.current_price };
+        setPortfolio([...portfolio, newStock]);
+      }
+    } catch (err) {
+      console.error('Failed to add to portfolio:', err);
+    }
+  };
+
+  const removeFromPortfolio = (index) => {
+    setPortfolio(portfolio.filter((_, i) => i !== index));
+  };
+
+  const updatePortfolioPrices = async () => {
+    const symbols = portfolio.map(p => p.symbol);
+    if (symbols.length === 0) return;
+
+    try {
+      const response = await axios.post(`${API_URL}/predict/batch`, { symbols });
+      if (response.data.success) {
+        const updatedPortfolio = portfolio.map(stock => {
+          const predData = response.data.predictions.find(p => p.symbol === stock.symbol);
+          return predData ? { ...stock, currentPrice: predData.current_price } : stock;
+        });
+        setPortfolio(updatedPortfolio);
+      }
+    } catch (err) {
+      console.error('Failed to update portfolio prices:', err);
+    }
+  };
+
+  // Update portfolio prices on mount
+  useEffect(() => {
+    if (portfolio.length > 0) {
+      updatePortfolioPrices();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Theme classes
   const bgClass = darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-blue-50 to-indigo-100';
   const cardBg = darkMode ? 'bg-gray-800' : 'bg-white';
@@ -203,6 +315,9 @@ function App() {
 
   return (
     <div className={`min-h-screen ${bgClass} transition-colors duration-200`}>
+      {/* Progress Bar */}
+      <ProgressBar loading={loading} />
+
       {/* Header */}
       <header className={`${cardBg} shadow-md`}>
         <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
@@ -251,33 +366,93 @@ function App() {
       <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         {/* Search Form */}
         <div className={`${cardBg} rounded-lg shadow-md p-6 mb-6`}>
-          <form onSubmit={handleSubmit} className="flex gap-4">
-            <input
-              type="text"
-              value={symbol}
-              onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-              className={`flex-1 px-4 py-3 border-2 ${borderColor} rounded-lg focus:outline-none focus:border-indigo-500 text-lg font-semibold ${textPrimary} ${darkMode ? 'bg-gray-700' : 'bg-white'}`}
-              placeholder="Enter stock symbol (e.g., SPY, AAPL, TSLA)"
-              disabled={loading}
-            />
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-8 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-            >
-              {loading ? 'Loading...' : 'Predict'}
-            </button>
-            {prediction && (
+          <div className="relative">
+            <form onSubmit={handleSubmit} className="flex gap-2">
+              <div className="flex-1 relative">
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={symbol}
+                  onChange={(e) => setSymbol(e.target.value.toUpperCase())}
+                  onFocus={() => setShowHistory(true)}
+                  onBlur={() => setTimeout(() => setShowHistory(false), 200)}
+                  className={`w-full px-4 py-3 border-2 ${borderColor} rounded-lg focus:outline-none focus:border-indigo-500 text-lg font-semibold ${textPrimary} ${darkMode ? 'bg-gray-700' : 'bg-white'}`}
+                  placeholder="Enter stock symbol (e.g., SPY, AAPL, TSLA)"
+                  disabled={loading}
+                />
+                {/* Search History Dropdown */}
+                {showHistory && searchHistory.length > 0 && (
+                  <div className={`absolute z-10 w-full mt-2 ${cardBg} border ${borderColor} rounded-lg shadow-lg max-h-60 overflow-y-auto`}>
+                    <div className={`px-3 py-2 border-b ${borderColor} flex items-center gap-2`}>
+                      <Clock className="h-4 w-4 text-gray-500" />
+                      <span className={`text-sm font-semibold ${textSecondary}`}>Recent Searches</span>
+                    </div>
+                    {searchHistory.map((hist, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => {
+                          setSymbol(hist);
+                          getPrediction(hist);
+                          getHistoricalData(hist);
+                          getStockInfo(hist);
+                          setShowHistory(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 hover:bg-indigo-50 dark:hover:bg-indigo-900 ${textPrimary} transition-colors`}
+                      >
+                        {hist}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <button
-                type="button"
-                onClick={() => isInWatchlist(symbol) ? removeFromWatchlist(symbol) : addToWatchlist(symbol)}
-                className={`p-3 rounded-lg transition-colors ${isInWatchlist(symbol) ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'}`}
-                title={isInWatchlist(symbol) ? 'Remove from watchlist' : 'Add to watchlist'}
+                type="submit"
+                disabled={loading}
+                className="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
               >
-                {isInWatchlist(symbol) ? <Star className="h-6 w-6" fill="currentColor" /> : <StarOff className="h-6 w-6" />}
+                {loading ? 'Loading...' : 'Predict'}
               </button>
-            )}
-          </form>
+              {prediction && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => isInWatchlist(symbol) ? removeFromWatchlist(symbol) : addToWatchlist(symbol)}
+                    className={`p-3 rounded-lg transition-colors ${isInWatchlist(symbol) ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'}`}
+                    title={isInWatchlist(symbol) ? 'Remove from watchlist' : 'Add to watchlist'}
+                  >
+                    {isInWatchlist(symbol) ? <Star className="h-6 w-6" fill="currentColor" /> : <StarOff className="h-6 w-6" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => exportToCSV(prediction, historicalData, stockInfo)}
+                    className="p-3 bg-green-100 text-green-600 hover:bg-green-200 rounded-lg transition-colors"
+                    title="Export to CSV"
+                  >
+                    <Download className="h-6 w-6" />
+                  </button>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setShareMenu(!shareMenu)}
+                      className="p-3 bg-blue-100 text-blue-600 hover:bg-blue-200 rounded-lg transition-colors"
+                      title="Share"
+                    >
+                      <Share2 className="h-6 w-6" />
+                    </button>
+                    {shareMenu && (
+                      <div className={`absolute right-0 mt-2 ${cardBg} border ${borderColor} rounded-lg shadow-lg py-2 z-10 min-w-[150px]`}>
+                        <button onClick={() => { sharePrediction(prediction, 'twitter'); setShareMenu(false); }} className={`w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 ${textPrimary}`}>Twitter</button>
+                        <button onClick={() => { sharePrediction(prediction, 'linkedin'); setShareMenu(false); }} className={`w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 ${textPrimary}`}>LinkedIn</button>
+                        <button onClick={() => { sharePrediction(prediction, 'facebook'); setShareMenu(false); }} className={`w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 ${textPrimary}`}>Facebook</button>
+                        <button onClick={() => { copyToClipboard(`${prediction.symbol}: ${prediction.prediction} (${prediction.confidence.toFixed(1)}%)`); setShareMenu(false); }} className={`w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 ${textPrimary}`}>Copy</button>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </form>
+          </div>
         </div>
 
         {/* Watchlist */}
@@ -310,6 +485,21 @@ function App() {
             darkMode={darkMode}
           />
         )}
+
+        {/* Portfolio Tracker */}
+        <Portfolio
+          portfolio={portfolio}
+          onAdd={addToPortfolio}
+          onRemove={removeFromPortfolio}
+          onUpdate={updatePortfolioPrices}
+          darkMode={darkMode}
+        />
+
+        {/* Accuracy Tracker */}
+        <AccuracyTracker
+          predictions={predictions}
+          darkMode={darkMode}
+        />
 
         {/* Error Message */}
         {error && (
@@ -479,25 +669,79 @@ function App() {
 
               {/* Stock Info */}
               {stockInfo && (
-                <div className="p-6 bg-purple-50 rounded-lg border-2 border-purple-200">
-                  <div className="text-lg font-medium text-gray-700 mb-4">Stock Info</div>
+                <div className="p-6 bg-purple-50 dark:bg-purple-900 dark:bg-opacity-20 rounded-lg border-2 border-purple-200 dark:border-purple-700">
+                  <div className={`text-lg font-medium ${textPrimary} mb-4`}>Stock Info</div>
                   <div className="space-y-2">
                     <div className="text-sm">
-                      <span className="text-gray-600">Name:</span>
-                      <span className="ml-2 font-semibold text-gray-800">
+                      <span className={textSecondary}>Name:</span>
+                      <span className={`ml-2 font-semibold ${textPrimary}`}>
                         {stockInfo.name || 'N/A'}
                       </span>
                     </div>
                     <div className="text-sm">
-                      <span className="text-gray-600">Exchange:</span>
-                      <span className="ml-2 font-semibold text-gray-800">
+                      <span className={textSecondary}>Exchange:</span>
+                      <span className={`ml-2 font-semibold ${textPrimary}`}>
                         {stockInfo.exchange || 'N/A'}
                       </span>
                     </div>
+                    <button
+                      onClick={() => setShowDetails(!showDetails)}
+                      className="text-indigo-600 hover:underline text-sm flex items-center gap-1 mt-2"
+                    >
+                      {showDetails ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      {showDetails ? 'Less Details' : 'More Details'}
+                    </button>
                   </div>
                 </div>
               )}
             </div>
+
+            {/* Expanded Stock Details */}
+            {showDetails && stockInfo && (
+              <div className={`mt-6 p-6 bg-gray-50 dark:bg-gray-700 rounded-lg`}>
+                <h3 className={`font-semibold ${textPrimary} mb-4`}>Detailed Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {stockInfo.sector && (
+                    <div>
+                      <span className={`text-sm ${textSecondary}`}>Sector:</span>
+                      <span className={`ml-2 ${textPrimary}`}>{stockInfo.sector}</span>
+                    </div>
+                  )}
+                  {stockInfo.industry && (
+                    <div>
+                      <span className={`text-sm ${textSecondary}`}>Industry:</span>
+                      <span className={`ml-2 ${textPrimary}`}>{stockInfo.industry}</span>
+                    </div>
+                  )}
+                  {stockInfo.marketCap && (
+                    <div>
+                      <span className={`text-sm ${textSecondary}`}>Market Cap:</span>
+                      <span className={`ml-2 ${textPrimary}`}>${(stockInfo.marketCap / 1e9).toFixed(2)}B</span>
+                    </div>
+                  )}
+                  {stockInfo.currency && (
+                    <div>
+                      <span className={`text-sm ${textSecondary}`}>Currency:</span>
+                      <span className={`ml-2 ${textPrimary}`}>{stockInfo.currency}</span>
+                    </div>
+                  )}
+                  {stockInfo.website && (
+                    <div className="col-span-2">
+                      <span className={`text-sm ${textSecondary}`}>Website:</span>
+                      <a href={stockInfo.website} target="_blank" rel="noopener noreferrer" className="ml-2 text-indigo-600 hover:underline">
+                        {stockInfo.website}
+                      </a>
+                    </div>
+                  )}
+                  {stockInfo.description && (
+                    <div className="col-span-2">
+                      <span className={`text-sm ${textSecondary} block mb-2`}>Description:</span>
+                      <p className={`text-sm ${textPrimary}`}>{stockInfo.description.slice(0, 300)}...</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         ) : null}
 
@@ -508,35 +752,86 @@ function App() {
           </div>
         ) : historicalData.length > 0 ? (
           <div className={`${cardBg} rounded-lg shadow-md p-6`}>
-            <h2 className={`text-2xl font-bold mb-6 ${textPrimary}`}>
-              3-Month Price History
-            </h2>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className={`text-2xl font-bold ${textPrimary}`}>
+                3-Month Price History
+              </h2>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setChartType('line')}
+                  className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                    chartType === 'line'
+                      ? 'bg-indigo-600 text-white'
+                      : `${darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700'} hover:bg-indigo-100`
+                  }`}
+                >
+                  Line Chart
+                </button>
+                <button
+                  onClick={() => setChartType('bar')}
+                  className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                    chartType === 'bar'
+                      ? 'bg-indigo-600 text-white'
+                      : `${darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700'} hover:bg-indigo-100`
+                  }`}
+                >
+                  Bar Chart
+                </button>
+              </div>
+            </div>
             <ResponsiveContainer width="100%" height={400}>
-              <LineChart data={historicalData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="date"
-                  tick={{ fontSize: 12 }}
-                  interval="preserveStartEnd"
-                />
-                <YAxis
-                  domain={['auto', 'auto']}
-                  tick={{ fontSize: 12 }}
-                />
-                <Tooltip
-                  contentStyle={{ backgroundColor: 'white', border: '1px solid #ccc' }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="price"
-                  stroke="#4F46E5"
-                  strokeWidth={2}
-                  dot={false}
-                />
-              </LineChart>
+              {chartType === 'line' ? (
+                <LineChart data={historicalData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 12 }}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    domain={['auto', 'auto']}
+                    tick={{ fontSize: 12 }}
+                  />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: darkMode ? '#374151' : 'white', border: '1px solid #ccc' }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="price"
+                    stroke="#4F46E5"
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                </LineChart>
+              ) : (
+                <BarChart data={historicalData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 12 }}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    domain={['auto', 'auto']}
+                    tick={{ fontSize: 12 }}
+                  />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: darkMode ? '#374151' : 'white', border: '1px solid #ccc' }}
+                  />
+                  <Bar
+                    dataKey="price"
+                    fill="#4F46E5"
+                  />
+                </BarChart>
+              )}
             </ResponsiveContainer>
           </div>
         ) : null}
+
+        {/* News Panel */}
+        {prediction && (
+          <NewsPanel symbol={symbol} darkMode={darkMode} />
+        )}
 
         {/* Disclaimer */}
         <div className="mt-8 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
