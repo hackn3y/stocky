@@ -1,0 +1,36 @@
+# Root level gitignore
+
+# Node modules (if accidentally installed at root)
+node_modules/
+package-lock.json
+package.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+.claude/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+
+# Build outputs
+build/
+dist/
