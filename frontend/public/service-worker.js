@@ -52,9 +52,13 @@ self.addEventListener('fetch', (event) => {
           // Cache the fetched response
           caches.open(CACHE_NAME)
             .then((cache) => {
-              // Only cache GET requests
-              if (event.request.method === 'GET') {
-                cache.put(event.request, responseToCache);
+              // Only cache GET requests from http/https schemes
+              if (event.request.method === 'GET' &&
+                  (event.request.url.startsWith('http://') || event.request.url.startsWith('https://'))) {
+                cache.put(event.request, responseToCache).catch((err) => {
+                  // Silently fail for unsupported schemes (chrome-extension, etc.)
+                  console.log('Cache put failed:', err.message);
+                });
               }
             });
 
