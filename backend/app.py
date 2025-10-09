@@ -267,13 +267,46 @@ def get_stock_news(symbol):
         # Format news data - limit to 10 most recent articles
         formatted_news = []
         for article in news[:10]:
+            # Handle both old and new yfinance news format
+            content = article.get('content', article)
+
+            # Get title
+            title = content.get('title', article.get('title', 'No title'))
+
+            # Get publisher
+            provider = content.get('provider', {})
+            publisher = provider.get('displayName', article.get('publisher', 'Unknown'))
+
+            # Get link
+            canonical_url = content.get('canonicalUrl', {})
+            link = canonical_url.get('url', article.get('link', ''))
+
+            # Get publish time
+            pub_date = content.get('pubDate', content.get('displayTime'))
+            if pub_date:
+                # pubDate is already in ISO format (e.g., '2025-10-09T13:22:26Z')
+                publish_time = pub_date
+            else:
+                # Fallback to old format (Unix timestamp)
+                pub_time = article.get('providerPublishTime')
+                publish_time = datetime.fromtimestamp(pub_time).isoformat() if pub_time else None
+
+            # Get thumbnail
+            thumbnail_url = ''
+            if content.get('thumbnail'):
+                thumbnail_url = content['thumbnail'].get('url', '')
+            elif article.get('thumbnail'):
+                resolutions = article['thumbnail'].get('resolutions', [])
+                if resolutions:
+                    thumbnail_url = resolutions[0].get('url', '')
+
             formatted_news.append({
-                'title': article.get('title', 'No title'),
-                'publisher': article.get('publisher', 'Unknown'),
-                'link': article.get('link', ''),
-                'publish_time': datetime.fromtimestamp(article.get('providerPublishTime', 0)).isoformat() if article.get('providerPublishTime') else None,
-                'type': article.get('type', 'STORY'),
-                'thumbnail': article.get('thumbnail', {}).get('resolutions', [{}])[0].get('url', '') if article.get('thumbnail') else ''
+                'title': title,
+                'publisher': publisher,
+                'link': link,
+                'publish_time': publish_time,
+                'type': content.get('contentType', article.get('type', 'STORY')),
+                'thumbnail': thumbnail_url
             })
 
         return jsonify({
