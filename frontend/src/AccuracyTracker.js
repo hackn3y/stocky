@@ -46,8 +46,8 @@ function AccuracyTracker({ predictions, darkMode }) {
       </div>
 
       <div className="space-y-2">
-        <h4 className={`font-semibold ${textPrimary} mb-3`}>Recent Predictions</h4>
-        {predictions.slice(-5).reverse().map((pred, index) => (
+        <h4 className={`font-semibold ${textPrimary} mb-3`}>Recent Predictions (Last 10)</h4>
+        {predictions.slice(0, 10).map((pred, index) => (
           <div key={index} className={`flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg`}>
             <div className="flex items-center gap-3">
               <span className={`font-bold ${textPrimary}`}>{pred.symbol}</span>
