@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Background -->
+  <rect width="512" height="512" fill="#4F46E5" rx="80"/>
+
+  <!-- Chart bars -->
+  <rect x="80" y="320" width="60" height="120" fill="#FFFFFF" opacity="0.9"/>
+  <rect x="160" y="240" width="60" height="200" fill="#FFFFFF" opacity="0.9"/>
+  <rect x="240" y="180" width="60" height="260" fill="#FFFFFF" opacity="0.9"/>
+  <rect x="320" y="220" width="60" height="220" fill="#FFFFFF" opacity="0.9"/>
+
+  <!-- Trend line -->
+  <path d="M 80 350 L 190 270 L 270 200 L 350 240"
+        stroke="#10B981"
+        stroke-width="8"
+        fill="none"
+        stroke-linecap="round"/>
+
+  <!-- Arrow up -->
+  <path d="M 380 160 L 420 120 L 460 160 M 420 120 L 420 200"
+        stroke="#10B981"
+        stroke-width="12"
+        fill="none"
+        stroke-linecap="round"
+        stroke-linejoin="round"/>
+</svg>
