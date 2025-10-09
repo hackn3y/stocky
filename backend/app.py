@@ -16,7 +16,7 @@ def health_check():
     return jsonify({
         'status': 'healthy',
         'timestamp': datetime.now().isoformat(),
-        'version': '2.0.1'
+        'version': '2.1.0'
     })
 
 # Model info endpoint
@@ -324,6 +324,114 @@ def get_stock_news(symbol):
             'details': str(e)
         }), 400
 
+# Popular stocks database for search
+POPULAR_STOCKS = {
+    # Tech Giants
+    'AAPL': 'Apple Inc.', 'MSFT': 'Microsoft Corporation', 'GOOGL': 'Alphabet Inc. (Google)',
+    'AMZN': 'Amazon.com Inc.', 'META': 'Meta Platforms Inc. (Facebook)', 'TSLA': 'Tesla Inc.',
+    'NVDA': 'NVIDIA Corporation', 'NFLX': 'Netflix Inc.', 'AMD': 'Advanced Micro Devices',
+    'INTC': 'Intel Corporation', 'CRM': 'Salesforce Inc.', 'ORCL': 'Oracle Corporation',
+    'ADBE': 'Adobe Inc.', 'PYPL': 'PayPal Holdings Inc.', 'UBER': 'Uber Technologies Inc.',
+
+    # Financial
+    'JPM': 'JPMorgan Chase & Co.', 'BAC': 'Bank of America Corp', 'WFC': 'Wells Fargo & Company',
+    'GS': 'Goldman Sachs Group Inc.', 'MS': 'Morgan Stanley', 'V': 'Visa Inc.', 'MA': 'Mastercard Inc.',
+
+    # Healthcare
+    'JNJ': 'Johnson & Johnson', 'UNH': 'UnitedHealth Group Inc.', 'PFE': 'Pfizer Inc.',
+    'ABBV': 'AbbVie Inc.', 'TMO': 'Thermo Fisher Scientific', 'MRK': 'Merck & Co. Inc.',
+
+    # Consumer
+    'WMT': 'Walmart Inc.', 'HD': 'Home Depot Inc.', 'DIS': 'Walt Disney Company',
+    'NKE': 'Nike Inc.', 'MCD': 'McDonald\'s Corporation', 'SBUX': 'Starbucks Corporation',
+    'KO': 'Coca-Cola Company', 'PEP': 'PepsiCo Inc.', 'COST': 'Costco Wholesale Corp',
+
+    # Energy
+    'XOM': 'Exxon Mobil Corporation', 'CVX': 'Chevron Corporation', 'COP': 'ConocoPhillips',
+
+    # ETFs
+    'SPY': 'SPDR S&P 500 ETF Trust', 'QQQ': 'Invesco QQQ Trust (Nasdaq-100)',
+    'VOO': 'Vanguard S&P 500 ETF', 'IWF': 'iShares Russell 1000 Growth ETF',
+    'SCHD': 'Schwab U.S. Dividend Equity ETF', 'VTI': 'Vanguard Total Stock Market ETF',
+    'DIA': 'SPDR Dow Jones Industrial Average ETF',
+
+    # Gold/Commodities
+    'GLD': 'SPDR Gold Trust', 'SLV': 'iShares Silver Trust', 'IAU': 'iShares Gold Trust',
+
+    # Crypto
+    'BTC-USD': 'Bitcoin USD', 'ETH-USD': 'Ethereum USD',
+
+    # Other Popular
+    'BA': 'Boeing Company', 'CAT': 'Caterpillar Inc.', 'IBM': 'IBM Corporation',
+    'T': 'AT&T Inc.', 'VZ': 'Verizon Communications', 'CSCO': 'Cisco Systems Inc.'
+}
+
+# Stock search endpoint
+@app.route('/api/search', methods=['GET'])
+def search_stocks():
+    """
+    Search for stock symbols by company name
+
+    Parameters:
+    - q: Query string (company name or partial ticker)
+
+    Returns:
+    - results: List of matching stocks with symbol and name
+    """
+    try:
+        query = request.args.get('q', '').strip()
+
+        if not query or len(query) < 1:
+            return jsonify({
+                'success': False,
+                'error': 'Query parameter "q" is required (min 1 character)'
+            }), 400
+
+        query_lower = query.lower()
+        results = []
+
+        # Search through popular stocks
+        for symbol, name in POPULAR_STOCKS.items():
+            # Match if query appears in symbol or company name
+            if (query_lower in symbol.lower() or
+                query_lower in name.lower()):
+                results.append({
+                    'symbol': symbol,
+                    'name': name,
+                    'match_type': 'symbol' if query_lower in symbol.lower() else 'name'
+                })
+
+        # Sort: exact symbol matches first, then symbol partial, then name matches
+        def sort_key(item):
+            if item['symbol'].lower() == query_lower:
+                return (0, item['symbol'])
+            elif item['symbol'].lower().startswith(query_lower):
+                return (1, item['symbol'])
+            elif item['match_type'] == 'symbol':
+                return (2, item['symbol'])
+            else:
+                return (3, item['symbol'])
+
+        results.sort(key=sort_key)
+
+        # Limit to top 10 results
+        results = results[:10]
+
+        return jsonify({
+            'success': True,
+            'query': query,
+            'count': len(results),
+            'results': results,
+            'timestamp': datetime.now().isoformat()
+        })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': 'Failed to search stocks',
+            'details': str(e)
+        }), 400
+
 # List supported assets
 @app.route('/api/assets', methods=['GET'])
 def list_assets():
@@ -375,6 +483,7 @@ if __name__ == '__main__':
     print("  GET  /api/info/<symbol>       - Get stock information")
     print("  GET  /api/news/<symbol>       - Get stock news")
     print("  POST /api/predict/batch       - Batch predictions")
+    print("  GET  /api/search?q=<query>    - Search stocks by name")
     print("  GET  /api/assets              - List supported assets")
     print(f"\nServer starting on port {port}")
     print("="*60 + "\n")
