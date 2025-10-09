@@ -1,5 +1,5 @@
 import React from 'react';
-import { Star, StarOff, X } from 'lucide-react';
+import { Star, X } from 'lucide-react';
 
 function Watchlist({ watchlist, onRemove, onSelect, darkMode }) {
   const cardBg = darkMode ? 'bg-gray-800' : 'bg-white';
