@@ -1,13 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar } from 'recharts';
-import { TrendingUp, TrendingDown, Activity, AlertCircle, Info, Moon, Sun, Star, StarOff, BarChart3, Download, Share2, Clock, ChevronDown, ChevronUp } from 'lucide-react';
+import { TrendingUp, TrendingDown, Activity, AlertCircle, Info, Moon, Sun, Star, StarOff, BarChart3, Download, Share2, Clock, ChevronDown, ChevronUp, User, LogOut } from 'lucide-react';
 import Watchlist from './Watchlist';
 import ComparisonView from './ComparisonView';
 import Portfolio from './Portfolio';
 import AccuracyTracker from './AccuracyTracker';
 import ProgressBar from './ProgressBar';
 import NewsPanel from './NewsPanel';
+import AuthModal from './AuthModal';
+import SocialFeed from './SocialFeed';
+import BacktestingDashboard from './BacktestingDashboard';
+import AlertsPanel from './AlertsPanel';
+import AIAssistant from './AIAssistant';
+import { useAuth } from './AuthContext';
 import { exportToCSV, sharePrediction, copyToClipboard } from './utils';
 import './index.css';
 
@@ -55,6 +61,9 @@ const ChartSkeleton = () => (
 );
 
 function App() {
+  // Auth
+  const { user, isAuthenticated, updateUser, logout } = useAuth();
+
   // Existing state
   const [symbol, setSymbol] = useState('SPY');
   const [prediction, setPrediction] = useState(null);
@@ -79,6 +88,9 @@ function App() {
   const [showDetails, setShowDetails] = useState(false);
   const [chartType, setChartType] = useState('line');
   const [shareMenu, setShareMenu] = useState(false);
+
+  // Advanced features state
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   // Refs
   const searchInputRef = useRef(null);
@@ -106,7 +118,13 @@ function App() {
           date: new Date().toISOString(),
           actual: null // Will be resolved later
         };
-        setPredictions([newPrediction, ...predictions].slice(0, 50));
+        const updatedPredictions = [newPrediction, ...predictions].slice(0, 50);
+        setPredictions(updatedPredictions);
+
+        // Sync with auth context if logged in
+        if (isAuthenticated && updateUser) {
+          updateUser({ predictions: updatedPredictions });
+        }
       } else {
         setError(response.data.error || 'Failed to get prediction');
       }
@@ -355,6 +373,25 @@ function App() {
               >
                 {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
               </button>
+              {isAuthenticated ? (
+                <button
+                  onClick={logout}
+                  className="flex items-center gap-2 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
+                  title="Logout"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span className="text-sm font-medium hidden sm:inline">{user?.username}</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => setShowAuthModal(true)}
+                  className="flex items-center gap-2 px-3 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors"
+                  title="Login / Sign Up"
+                >
+                  <User className="h-4 w-4" />
+                  <span className="text-sm font-medium hidden sm:inline">Login</span>
+                </button>
+              )}
               <div className={`text-sm ${textSecondary} hidden md:block`}>
                 ML (51.88% accuracy)
               </div>
@@ -833,6 +870,19 @@ function App() {
           <NewsPanel symbol={symbol} darkMode={darkMode} />
         )}
 
+        {/* Social Feed */}
+        <SocialFeed darkMode={darkMode} />
+
+        {/* Backtesting Dashboard */}
+        <BacktestingDashboard predictions={predictions} darkMode={darkMode} />
+
+        {/* Alerts Panel */}
+        <AlertsPanel
+          darkMode={darkMode}
+          symbol={symbol}
+          currentPrice={prediction?.current_price}
+        />
+
         {/* Disclaimer */}
         <div className="mt-8 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
           <p className="text-sm text-yellow-800">
@@ -851,6 +901,14 @@ function App() {
           </p>
         </div>
       </footer>
+
+      {/* Auth Modal */}
+      {showAuthModal && (
+        <AuthModal onClose={() => setShowAuthModal(false)} darkMode={darkMode} />
+      )}
+
+      {/* AI Assistant */}
+      <AIAssistant darkMode={darkMode} symbol={symbol} prediction={prediction} />
     </div>
   );
 }
