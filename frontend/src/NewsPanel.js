@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Newspaper, ExternalLink, Clock } from 'lucide-react';
+import { Newspaper, ExternalLink, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
@@ -8,6 +8,7 @@ function NewsPanel({ symbol, darkMode }) {
   const [news, setNews] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [expanded, setExpanded] = useState(false);
 
   const cardBg = darkMode ? 'bg-gray-800' : 'bg-white';
   const textPrimary = darkMode ? 'text-gray-100' : 'text-gray-900';
@@ -52,11 +53,36 @@ function NewsPanel({ symbol, darkMode }) {
 
   if (!symbol) return null;
 
+  // Determine how many articles to show
+  const articlesToShow = expanded ? news.length : 3;
+  const hasMoreArticles = news.length > 3;
+
   return (
     <div className={`${cardBg} rounded-lg shadow-md p-6 mb-6`}>
-      <div className="flex items-center gap-2 mb-4">
-        <Newspaper className="h-5 w-5 text-blue-500" />
-        <h3 className={`text-xl font-bold ${textPrimary}`}>Latest News for {symbol}</h3>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Newspaper className="h-5 w-5 text-blue-500" />
+          <h3 className={`text-xl font-bold ${textPrimary}`}>Latest News</h3>
+          {symbol && <span className={`text-sm ${textSecondary}`}>for {symbol}</span>}
+        </div>
+        {hasMoreArticles && !loading && !error && (
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className={`flex items-center gap-1 px-3 py-1 text-sm font-medium ${
+              darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'
+            } rounded-lg transition-colors ${textPrimary}`}
+          >
+            {expanded ? (
+              <>
+                Show Less <ChevronUp className="h-4 w-4" />
+              </>
+            ) : (
+              <>
+                Show All ({news.length}) <ChevronDown className="h-4 w-4" />
+              </>
+            )}
+          </button>
+        )}
       </div>
 
       {loading && (
@@ -79,29 +105,31 @@ function NewsPanel({ symbol, darkMode }) {
       )}
 
       {!loading && !error && news.length > 0 && (
-        <div className="space-y-3">
-          {news.map((article, index) => (
+        <div className="space-y-2">
+          {news.slice(0, articlesToShow).map((article, index) => (
             <a
               key={index}
               href={article.link}
               target="_blank"
               rel="noopener noreferrer"
-              className={`block p-4 border ${borderColor} rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors`}
+              className={`block p-3 border ${borderColor} rounded-lg ${
+                darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'
+              } transition-colors`}
             >
               <div className="flex items-start gap-3">
-                {article.thumbnail && (
+                {expanded && article.thumbnail && (
                   <img
                     src={article.thumbnail}
                     alt=""
-                    className="w-20 h-20 object-cover rounded flex-shrink-0"
+                    className="w-16 h-16 object-cover rounded flex-shrink-0"
                     onError={(e) => { e.target.style.display = 'none'; }}
                   />
                 )}
                 <div className="flex-1 min-w-0">
-                  <h4 className={`font-semibold ${textPrimary} mb-1 line-clamp-2`}>
+                  <h4 className={`font-medium ${textPrimary} mb-1 ${expanded ? 'line-clamp-2' : 'line-clamp-1'} text-sm`}>
                     {article.title}
                   </h4>
-                  <div className="flex items-center gap-3 text-sm">
+                  <div className="flex items-center gap-3 text-xs">
                     <span className={`${textSecondary} flex items-center gap-1`}>
                       {article.publisher}
                     </span>
@@ -111,10 +139,15 @@ function NewsPanel({ symbol, darkMode }) {
                     </span>
                   </div>
                 </div>
-                <ExternalLink className={`h-4 w-4 ${textSecondary} flex-shrink-0`} />
+                <ExternalLink className={`h-3 w-3 ${textSecondary} flex-shrink-0 mt-1`} />
               </div>
             </a>
           ))}
+          {!expanded && hasMoreArticles && (
+            <div className={`text-center pt-2 text-xs ${textSecondary}`}>
+              {news.length - 3} more article{news.length - 3 > 1 ? 's' : ''} available
+            </div>
+          )}
         </div>
       )}
     </div>

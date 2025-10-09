@@ -48,7 +48,7 @@ function AccuracyTracker({ predictions, darkMode }) {
       <div className="space-y-2">
         <h4 className={`font-semibold ${textPrimary} mb-3`}>Recent Predictions (Last 10)</h4>
         {predictions.slice(0, 10).map((pred, index) => (
-          <div key={index} className={`flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg`}>
+          <div key={index} className={`flex items-center justify-between p-3 ${darkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg`}>
             <div className="flex items-center gap-3">
               <span className={`font-bold ${textPrimary}`}>{pred.symbol}</span>
               <span className={`flex items-center gap-1 ${pred.prediction === 'UP' ? 'text-green-600' : 'text-red-600'}`}>
@@ -69,7 +69,7 @@ function AccuracyTracker({ predictions, darkMode }) {
                 </span>
               )}
               {pred.actual === null && (
-                <span className={`px-2 py-1 rounded text-xs font-semibold bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-300`}>
+                <span className={`px-2 py-1 rounded text-xs font-semibold ${darkMode ? 'bg-gray-600 text-gray-300' : 'bg-gray-200 text-gray-700'}`}>
                   Pending
                 </span>
               )}

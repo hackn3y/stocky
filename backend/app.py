@@ -432,6 +432,82 @@ def search_stocks():
             'details': str(e)
         }), 400
 
+# Risk metrics endpoint
+@app.route('/api/risk-metrics/<symbol>', methods=['GET'])
+def get_risk_metrics(symbol):
+    """Calculate risk assessment metrics for a stock"""
+    try:
+        import pandas as pd
+        import numpy as np
+
+        symbol = symbol.upper()
+        ticker = yf.Ticker(symbol)
+        df = ticker.history(period="1y")
+
+        if df.empty:
+            return jsonify({
+                'success': False,
+                'error': f'No data found for symbol {symbol}'
+            }), 404
+
+        # Calculate returns
+        returns = df['Close'].pct_change().dropna()
+
+        # Sharpe Ratio (assuming risk-free rate of 2%)
+        risk_free_rate = 0.02
+        sharpe = (returns.mean() * 252 - risk_free_rate) / (returns.std() * np.sqrt(252))
+
+        # Volatility (annualized)
+        volatility = returns.std() * np.sqrt(252)
+
+        # Maximum Drawdown
+        cumulative = (1 + returns).cumprod()
+        running_max = cumulative.cummax()
+        drawdown = (cumulative - running_max) / running_max
+        max_drawdown = drawdown.min()
+
+        # Beta (vs SPY)
+        try:
+            spy = yf.Ticker('SPY')
+            spy_df = spy.history(period="1y")
+            spy_returns = spy_df['Close'].pct_change().dropna()
+
+            # Align dates
+            aligned_returns = pd.concat([returns, spy_returns], axis=1, join='inner')
+            aligned_returns.columns = ['stock', 'market']
+
+            if len(aligned_returns) > 0:
+                covariance = aligned_returns.cov().iloc[0, 1]
+                market_variance = aligned_returns['market'].var()
+                beta = covariance / market_variance if market_variance != 0 else 1.0
+            else:
+                beta = 1.0
+        except:
+            beta = 1.0
+
+        # Value at Risk (95% confidence)
+        var_95 = returns.quantile(0.05)
+
+        return jsonify({
+            'success': True,
+            'symbol': symbol,
+            'metrics': {
+                'sharpe_ratio': round(sharpe, 2),
+                'volatility': round(volatility * 100, 2),  # as percentage
+                'max_drawdown': round(max_drawdown * 100, 2),  # as percentage
+                'beta': round(beta, 2),
+                'var_95': round(var_95 * 100, 2)  # as percentage
+            },
+            'timestamp': datetime.now().isoformat()
+        })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': 'Failed to calculate risk metrics',
+            'details': str(e)
+        }), 400
+
 # List supported assets
 @app.route('/api/assets', methods=['GET'])
 def list_assets():

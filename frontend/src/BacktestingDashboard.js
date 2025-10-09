@@ -215,7 +215,7 @@ function BacktestingDashboard({ predictions, darkMode }) {
       )}
 
       {/* Note */}
-      <div className={`mt-4 p-3 bg-gray-100 dark:bg-gray-700 rounded-lg`}>
+      <div className={`mt-4 p-3 ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} rounded-lg`}>
         <p className={`text-xs ${textSecondary}`}>
           <strong>Note:</strong> Simulated P&L assumes $100 profit per correct prediction and $100 loss per incorrect prediction.
           Past performance does not guarantee future results.

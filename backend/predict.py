@@ -1,13 +1,27 @@
 import yfinance as yf
 import pandas as pd
 import joblib
-from feature_engineering import calculate_technical_indicators
+import os
+from feature_engineering import calculate_technical_indicators, prepare_model_data
 
 def load_model():
-    """Load trained model"""
-    return joblib.load('models/spy_model.pkl')
+    """Load trained model - enhanced if available, else original"""
+    enhanced_model_path = 'models/enhanced_spy_model.pkl'
+    original_model_path = 'models/spy_model.pkl'
 
-def get_latest_data(symbol='SPY', period='3mo'):
+    # Try enhanced model first
+    if os.path.exists(enhanced_model_path):
+        try:
+            print("Loading enhanced model...")
+            return joblib.load(enhanced_model_path), 'enhanced'
+        except Exception as e:
+            print(f"Failed to load enhanced model: {e}")
+
+    # Fall back to original
+    print("Loading original model...")
+    return joblib.load(original_model_path), 'original'
+
+def get_latest_data(symbol='SPY', period='2y'):
     """Get recent data for prediction"""
     ticker = yf.Ticker(symbol)
     df = ticker.history(period=period)
@@ -17,44 +31,101 @@ def make_prediction(symbol='SPY'):
     """Make prediction for next trading day"""
 
     # Load model
-    model = load_model()
+    model_data, model_type = load_model()
 
     # Get latest data
     df = get_latest_data(symbol)
 
+    if df.empty:
+        raise ValueError(f"No data found for symbol {symbol}")
+
     # Calculate features
     df = calculate_technical_indicators(df)
-    df = df.dropna()
 
-    # Get latest features (must match training features)
-    feature_cols = [
-        # Original normalized features
-        'RSI', 'BB_Position', 'Volume_Ratio',
-        'SMA_5_20_Ratio', 'SMA_20_50_Ratio',
-        'Price_to_SMA5', 'Price_to_SMA20',
+    if model_type == 'enhanced':
+        try:
+            # Import enhanced model features
+            from enhanced_model import EnhancedStockPredictor
 
-        # Percentage-based features
-        'Daily_Return', 'Momentum_Pct', 'Volatility',
-        'Return_2d', 'Return_5d', 'HL_Ratio',
-        'Volume_Change', 'Price_Acceleration',
+            # Add enhanced features
+            predictor = EnhancedStockPredictor()
+            df = predictor.add_engineered_features(df)
 
-        # MACD
-        'MACD_Hist',
+            # Prepare features
+            X, _, df_clean = prepare_model_data(df)
 
-        # Advanced technical indicators
-        'Stochastic', 'ATR_Pct', 'MFI', 'OBV_Ratio',
-        'Williams_R', 'CCI', 'ROC', 'DI_Diff',
+            # Add enhanced features to X
+            enhanced_features = [
+                'Market_Regime', 'Trend_Strength', 'VP_Divergence',
+                'Momentum_Quality', 'Distance_to_High', 'Distance_to_Low',
+                'Volatility_Change', 'Price_Efficiency', 'Volume_Profile', 'Fear_Greed'
+            ]
 
-        # Pattern features
-        'Up_Streak', 'Down_Streak', 'Gap',
-        'Intraday_Range', 'Close_Position', 'Volume_Momentum',
-    ]
+            for feat in enhanced_features:
+                if feat in df_clean.columns:
+                    X[feat] = df_clean[feat]
 
-    latest_features = df[feature_cols].iloc[-1:]
+            # Remove any remaining NaNs
+            mask = ~(X.isna().any(axis=1))
+            X = X[mask]
 
-    # Make prediction
-    prediction = model.predict(latest_features)[0]
-    probabilities = model.predict_proba(latest_features)[0]
+            if X.empty:
+                raise ValueError("Insufficient data for prediction")
+
+            # Get the latest row for prediction
+            X_latest = X.iloc[[-1]]  # Keep as DataFrame
+
+            # Scale and select features
+            X_latest_scaled = model_data['scaler'].transform(X_latest)
+            X_latest_selected = model_data['feature_selector'].transform(X_latest_scaled)
+
+            # Make prediction with ensemble
+            model = model_data['ensemble']
+            prediction = model.predict(X_latest_selected)[0]
+            probabilities = model.predict_proba(X_latest_selected)[0]
+
+            print(f"Using enhanced model (accuracy: {model_data.get('accuracy', 'N/A'):.2%})")
+
+        except Exception as e:
+            print(f"Error using enhanced model, falling back to original: {e}")
+            model_type = 'original'
+
+    if model_type == 'original':
+        # Original model prediction logic
+        df = df.dropna()
+
+        # Get latest features (must match training features)
+        feature_cols = [
+            # Original normalized features
+            'RSI', 'BB_Position', 'Volume_Ratio',
+            'SMA_5_20_Ratio', 'SMA_20_50_Ratio',
+            'Price_to_SMA5', 'Price_to_SMA20',
+
+            # Percentage-based features
+            'Daily_Return', 'Momentum_Pct', 'Volatility',
+            'Return_2d', 'Return_5d', 'HL_Ratio',
+            'Volume_Change', 'Price_Acceleration',
+
+            # MACD
+            'MACD_Hist',
+
+            # Advanced technical indicators
+            'Stochastic', 'ATR_Pct', 'MFI', 'OBV_Ratio',
+            'Williams_R', 'CCI', 'ROC', 'DI_Diff',
+
+            # Pattern features
+            'Up_Streak', 'Down_Streak', 'Gap',
+            'Intraday_Range', 'Close_Position', 'Volume_Momentum',
+        ]
+
+        latest_features = df[feature_cols].iloc[-1:]
+
+        # Make prediction
+        model = model_data if isinstance(model_data, type(model_data).__class__) else model_data
+        prediction = model.predict(latest_features)[0]
+        probabilities = model.predict_proba(latest_features)[0]
+
+        print(f"Using original model")
 
     # Format output
     direction = "UP" if prediction == 1 else "DOWN"

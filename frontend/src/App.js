@@ -1,28 +1,39 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense, useMemo, useCallback } from 'react';
 import axios from 'axios';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar } from 'recharts';
 import { TrendingUp, TrendingDown, Activity, Info, Moon, Sun, Star, StarOff, BarChart3, Download, Share2, Clock, ChevronDown, ChevronUp, User, LogOut, Search } from 'lucide-react';
-import WatchlistEnhanced from './WatchlistEnhanced';
-import ComparisonView from './ComparisonView';
-import Portfolio from './Portfolio';
-import AccuracyTracker from './AccuracyTracker';
 import ProgressBar from './ProgressBar';
-import NewsPanel from './NewsPanel';
-import AuthModal from './AuthModal';
-import SocialFeed from './SocialFeed';
-import BacktestingDashboard from './BacktestingDashboard';
-import AlertsPanel from './AlertsPanel';
-import AIAssistant from './AIAssistant';
-import PaperTrading from './PaperTrading';
-import TechnicalChart from './TechnicalChart';
-import PerformanceAnalytics from './PerformanceAnalytics';
-import MobileNav from './MobileNav';
 import { ToastContainer, useToast } from './Toast';
 import { ErrorDisplay, NetworkStatus, useNetworkStatus, withRetry } from './ErrorRecovery';
 import { PredictionSkeleton, ChartSkeleton } from './LoadingSkeletons';
 import { useAuth } from './AuthContext';
 import { exportToCSV, sharePrediction, copyToClipboard } from './utils';
 import './index.css';
+
+// Lazy load heavy components for better initial load performance
+const WatchlistEnhanced = lazy(() => import('./WatchlistEnhanced'));
+const ComparisonView = lazy(() => import('./ComparisonView'));
+const Portfolio = lazy(() => import('./Portfolio'));
+const AccuracyTracker = lazy(() => import('./AccuracyTracker'));
+const NewsPanel = lazy(() => import('./NewsPanel'));
+const AuthModal = lazy(() => import('./AuthModal'));
+const SocialFeed = lazy(() => import('./SocialFeed'));
+const BacktestingDashboard = lazy(() => import('./BacktestingDashboard'));
+const AlertsPanel = lazy(() => import('./AlertsPanel'));
+const AIAssistant = lazy(() => import('./AIAssistant'));
+const PaperTrading = lazy(() => import('./PaperTrading'));
+const TechnicalChart = lazy(() => import('./TechnicalChart'));
+const PerformanceAnalytics = lazy(() => import('./PerformanceAnalytics'));
+const MobileNav = lazy(() => import('./MobileNav'));
+
+// Loading fallback component
+const LoadingFallback = ({ darkMode }) => (
+  <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-md p-6 mb-6 animate-pulse`}>
+    <div className={`h-8 ${darkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded w-1/4 mb-4`}></div>
+    <div className={`h-4 ${darkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded w-3/4 mb-2`}></div>
+    <div className={`h-4 ${darkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded w-1/2`}></div>
+  </div>
+);
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
@@ -562,24 +573,22 @@ function App() {
                   >
                     <Download className="h-6 w-6" />
                   </button>
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setShareMenu(!shareMenu)}
-                      className="p-3 bg-blue-100 text-blue-600 hover:bg-blue-200 rounded-lg transition-colors"
-                      title="Share"
-                    >
-                      <Share2 className="h-6 w-6" />
-                    </button>
+                  <button
+                    type="button"
+                    onClick={() => setShareMenu(!shareMenu)}
+                    className="p-3 bg-blue-100 text-blue-600 hover:bg-blue-200 rounded-lg transition-colors relative"
+                    title="Share"
+                  >
+                    <Share2 className="h-6 w-6" />
                     {shareMenu && (
-                      <div className={`absolute right-0 mt-2 ${cardBg} border ${borderColor} rounded-lg shadow-lg py-2 z-10 min-w-[150px]`}>
-                        <button onClick={() => { sharePrediction(prediction, 'twitter'); setShareMenu(false); }} className={`w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 ${textPrimary}`}>Twitter</button>
-                        <button onClick={() => { sharePrediction(prediction, 'linkedin'); setShareMenu(false); }} className={`w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 ${textPrimary}`}>LinkedIn</button>
-                        <button onClick={() => { sharePrediction(prediction, 'facebook'); setShareMenu(false); }} className={`w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 ${textPrimary}`}>Facebook</button>
-                        <button onClick={() => { copyToClipboard(`${prediction.symbol}: ${prediction.prediction} (${prediction.confidence.toFixed(1)}%)`); setShareMenu(false); }} className={`w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 ${textPrimary}`}>Copy</button>
+                      <div className={`absolute right-0 top-full mt-2 ${cardBg} border ${borderColor} rounded-lg shadow-lg py-2 z-10 min-w-[150px]`}>
+                        <button onClick={() => { sharePrediction(prediction, 'twitter'); setShareMenu(false); }} className={`w-full text-left px-4 py-2 ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} ${textPrimary}`}>Twitter</button>
+                        <button onClick={() => { sharePrediction(prediction, 'linkedin'); setShareMenu(false); }} className={`w-full text-left px-4 py-2 ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} ${textPrimary}`}>LinkedIn</button>
+                        <button onClick={() => { sharePrediction(prediction, 'facebook'); setShareMenu(false); }} className={`w-full text-left px-4 py-2 ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} ${textPrimary}`}>Facebook</button>
+                        <button onClick={() => { copyToClipboard(`${prediction.symbol}: ${prediction.prediction} (${prediction.confidence.toFixed(1)}%)`); setShareMenu(false); }} className={`w-full text-left px-4 py-2 ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} ${textPrimary}`}>Copy</button>
                       </div>
                     )}
-                  </div>
+                  </button>
                 </>
               )}
             </form>
@@ -831,7 +840,7 @@ function App() {
 
             {/* Expanded Stock Details */}
             {showDetails && stockInfo && (
-              <div className={`mt-6 p-6 bg-gray-50 dark:bg-gray-700 rounded-lg`}>
+              <div className={`mt-6 p-6 ${darkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg`}>
                 <h3 className={`font-semibold ${textPrimary} mb-4`}>Detailed Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {stockInfo.sector && (

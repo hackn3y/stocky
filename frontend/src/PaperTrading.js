@@ -410,7 +410,7 @@ function PaperTrading({ darkMode, currentSymbol, currentPrice, prediction }) {
               </div>
 
               {tradeType === 'buy' && currentPrice && tradeShares && (
-                <div className={`p-3 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm ${textPrimary}`}>
+                <div className={`p-3 ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} rounded-lg text-sm ${textPrimary}`}>
                   <p>Price per share: ${currentPrice.toFixed(2)}</p>
                   <p>Total cost: ${((currentPrice * parseInt(tradeShares || 0)) + COMMISSION).toFixed(2)}</p>
                   <p className="text-xs text-gray-500">Includes ${COMMISSION.toFixed(2)} commission</p>
@@ -418,7 +418,7 @@ function PaperTrading({ darkMode, currentSymbol, currentPrice, prediction }) {
               )}
 
               {tradeType === 'sell' && window.currentSellPosition && tradeShares && (
-                <div className={`p-3 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm ${textPrimary}`}>
+                <div className={`p-3 ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} rounded-lg text-sm ${textPrimary}`}>
                   <p>Price per share: ${(window.currentSellPosition.currentPrice || window.currentSellPosition.buyPrice).toFixed(2)}</p>
                   <p>Total proceeds: ${(((window.currentSellPosition.currentPrice || window.currentSellPosition.buyPrice) * parseInt(tradeShares || 0)) - COMMISSION).toFixed(2)}</p>
                   <p className="text-xs text-gray-500">After ${COMMISSION.toFixed(2)} commission</p>
@@ -428,7 +428,7 @@ function PaperTrading({ darkMode, currentSymbol, currentPrice, prediction }) {
               <div className="flex gap-2">
                 <button
                   onClick={() => { setShowTradeModal(false); setError(''); }}
-                  className={`flex-1 px-4 py-2 border ${borderColor} rounded-lg ${textPrimary} hover:bg-gray-100 dark:hover:bg-gray-700`}
+                  className={`flex-1 px-4 py-2 border ${borderColor} rounded-lg ${textPrimary} ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
                 >
                   Cancel
                 </button>
@@ -445,7 +445,7 @@ function PaperTrading({ darkMode, currentSymbol, currentPrice, prediction }) {
       )}
 
       {/* Note */}
-      <div className={`mt-6 p-3 bg-gray-100 dark:bg-gray-700 rounded-lg`}>
+      <div className={`mt-6 p-3 ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} rounded-lg`}>
         <p className={`text-xs ${textSecondary}`}>
           <strong>Note:</strong> This is a paper trading simulator with virtual money. Starting balance: $10,000.
           Commission: ${COMMISSION.toFixed(2)} per trade. Prices are based on latest data from predictions.

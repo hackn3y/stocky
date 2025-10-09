@@ -116,7 +116,7 @@ function AlertsPanel({ darkMode, symbol, currentPrice }) {
 
       {/* Add Alert Form */}
       {showAddForm && (
-        <form onSubmit={handleAddAlert} className="mb-6 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
+        <form onSubmit={handleAddAlert} className={`mb-6 p-4 ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} rounded-lg`}>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <input
               type="text"

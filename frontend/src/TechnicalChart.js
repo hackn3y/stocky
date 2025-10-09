@@ -334,7 +334,7 @@ function TechnicalChart({ historicalData, darkMode, symbol }) {
       )}
 
       {/* Legend */}
-      <div className={`mt-4 p-3 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs ${textSecondary}`}>
+      <div className={`mt-4 p-3 ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} rounded-lg text-xs ${textSecondary}`}>
         <p className="font-semibold mb-1">Indicators Guide:</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
           <p>• <strong>SMA (Simple Moving Average):</strong> Average price over period</p>

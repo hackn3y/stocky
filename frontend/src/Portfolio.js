@@ -70,7 +70,7 @@ function Portfolio({ portfolio, onAdd, onRemove, onUpdate, darkMode }) {
 
       {/* Add Stock Form */}
       {showAdd && (
-        <form onSubmit={handleAdd} className="mb-6 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
+        <form onSubmit={handleAdd} className={`mb-6 p-4 ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} rounded-lg`}>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <input
               type="text"

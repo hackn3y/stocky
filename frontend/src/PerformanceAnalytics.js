@@ -373,7 +373,7 @@ function PerformanceAnalytics({ predictions, darkMode }) {
       </div>
 
       {/* Note */}
-      <div className={`p-3 bg-gray-100 dark:bg-gray-700 rounded-lg`}>
+      <div className={`p-3 ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} rounded-lg`}>
         <p className={`text-xs ${textSecondary}`}>
           <strong>Note:</strong> Analytics are based on resolved predictions only. Accuracy percentages
           may vary as more predictions are resolved. Historical performance does not guarantee future results.
