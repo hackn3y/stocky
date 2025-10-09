@@ -1,10 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { TrendingUp, TrendingDown, Activity, AlertCircle, Info } from 'lucide-react';
+import { TrendingUp, TrendingDown, Activity, AlertCircle, Info, Moon, Sun, Star, StarOff, BarChart3, X } from 'lucide-react';
+import Watchlist from './Watchlist';
+import ComparisonView from './ComparisonView';
 import './index.css';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+
+// Utility functions for localStorage
+const getFromStorage = (key, defaultValue) => {
+  try {
+    const item = localStorage.getItem(key);
+    return item ? JSON.parse(item) : defaultValue;
+  } catch {
+    return defaultValue;
+  }
+};
+
+const saveToStorage = (key, value) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    console.error('Failed to save to localStorage:', error);
+  }
+};
 
 // Loading Skeleton Component
 const LoadingSkeleton = () => (
@@ -30,6 +50,7 @@ const ChartSkeleton = () => (
 );
 
 function App() {
+  // Existing state
   const [symbol, setSymbol] = useState('SPY');
   const [prediction, setPrediction] = useState(null);
   const [historicalData, setHistoricalData] = useState([]);
@@ -37,6 +58,13 @@ function App() {
   const [error, setError] = useState(null);
   const [stockInfo, setStockInfo] = useState(null);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
+
+  // New features state
+  const [darkMode, setDarkMode] = useState(() => getFromStorage('darkMode', false));
+  const [watchlist, setWatchlist] = useState(() => getFromStorage('watchlist', []));
+  const [showComparison, setShowComparison] = useState(false);
+  const [comparisonSymbols, setComparisonSymbols] = useState(['SPY', 'QQQ', 'VOO']);
+  const [comparisonData, setComparisonData] = useState([]);
 
   // Fetch prediction
   const getPrediction = async (ticker = symbol) => {
@@ -110,28 +138,110 @@ function App() {
     getStockInfo();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Dark mode effect
+  useEffect(() => {
+    saveToStorage('darkMode', darkMode);
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [darkMode]);
+
+  // Watchlist effect
+  useEffect(() => {
+    saveToStorage('watchlist', watchlist);
+  }, [watchlist]);
+
+  // Dark mode toggle
+  const toggleDarkMode = () => setDarkMode(!darkMode);
+
+  // Watchlist functions
+  const addToWatchlist = (ticker) => {
+    if (!watchlist.includes(ticker)) {
+      setWatchlist([...watchlist, ticker]);
+    }
+  };
+
+  const removeFromWatchlist = (ticker) => {
+    setWatchlist(watchlist.filter(s => s !== ticker));
+  };
+
+  const isInWatchlist = (ticker) => watchlist.includes(ticker);
+
+  // Comparison functions
+  const fetchComparisonData = async () => {
+    try {
+      const response = await axios.post(`${API_URL}/predict/batch`, {
+        symbols: comparisonSymbols
+      });
+
+      if (response.data.success) {
+        setComparisonData(response.data.predictions);
+      }
+    } catch (err) {
+      console.error('Comparison error:', err);
+    }
+  };
+
+  const removeComparisonSymbol = (ticker) => {
+    setComparisonSymbols(comparisonSymbols.filter(s => s !== ticker));
+  };
+
+  const addComparisonSymbol = (ticker) => {
+    if (!comparisonSymbols.includes(ticker) && comparisonSymbols.length < 5) {
+      setComparisonSymbols([...comparisonSymbols, ticker]);
+    }
+  };
+
+  // Theme classes
+  const bgClass = darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-blue-50 to-indigo-100';
+  const cardBg = darkMode ? 'bg-gray-800' : 'bg-white';
+  const textPrimary = darkMode ? 'text-gray-100' : 'text-gray-900';
+  const textSecondary = darkMode ? 'text-gray-300' : 'text-gray-600';
+  const borderColor = darkMode ? 'border-gray-700' : 'border-gray-300';
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className={`min-h-screen ${bgClass} transition-colors duration-200`}>
       {/* Header */}
-      <header className="bg-white shadow-md">
+      <header className={`${cardBg} shadow-md`}>
         <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center space-x-3">
               <Activity className="h-8 w-8 text-indigo-600" />
-              <h1 className="text-3xl font-bold text-gray-900">
+              <h1 className={`text-3xl font-bold ${textPrimary}`}>
                 Stock Market Predictor
               </h1>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 flex-wrap">
               <button
                 onClick={() => setShowHowItWorks(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors"
+                className="flex items-center gap-2 px-3 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors"
+                title="How It Works"
               >
                 <Info className="h-4 w-4" />
-                <span className="text-sm font-medium">How It Works</span>
+                <span className="text-sm font-medium hidden sm:inline">How It Works</span>
               </button>
-              <div className="text-sm text-gray-500">
-                Powered by ML (51.88% accuracy)
+              <button
+                onClick={() => {
+                  setShowComparison(!showComparison);
+                  if (!showComparison) fetchComparisonData();
+                }}
+                className="flex items-center gap-2 px-3 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors"
+                title="Compare Stocks"
+              >
+                <BarChart3 className="h-4 w-4" />
+                <span className="text-sm font-medium hidden sm:inline">Compare</span>
+              </button>
+              <button
+                onClick={toggleDarkMode}
+                className={`p-2 rounded-lg transition-colors ${darkMode ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200' : 'bg-gray-700 text-gray-100 hover:bg-gray-600'}`}
+                title={darkMode ? 'Light Mode' : 'Dark Mode'}
+              >
+                {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              </button>
+              <div className={`text-sm ${textSecondary} hidden md:block`}>
+                ML (51.88% accuracy)
               </div>
             </div>
           </div>
@@ -140,13 +250,13 @@ function App() {
 
       <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         {/* Search Form */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div className={`${cardBg} rounded-lg shadow-md p-6 mb-6`}>
           <form onSubmit={handleSubmit} className="flex gap-4">
             <input
               type="text"
               value={symbol}
               onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-              className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500 text-lg font-semibold"
+              className={`flex-1 px-4 py-3 border-2 ${borderColor} rounded-lg focus:outline-none focus:border-indigo-500 text-lg font-semibold ${textPrimary} ${darkMode ? 'bg-gray-700' : 'bg-white'}`}
               placeholder="Enter stock symbol (e.g., SPY, AAPL, TSLA)"
               disabled={loading}
             />
@@ -157,8 +267,49 @@ function App() {
             >
               {loading ? 'Loading...' : 'Predict'}
             </button>
+            {prediction && (
+              <button
+                type="button"
+                onClick={() => isInWatchlist(symbol) ? removeFromWatchlist(symbol) : addToWatchlist(symbol)}
+                className={`p-3 rounded-lg transition-colors ${isInWatchlist(symbol) ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'}`}
+                title={isInWatchlist(symbol) ? 'Remove from watchlist' : 'Add to watchlist'}
+              >
+                {isInWatchlist(symbol) ? <Star className="h-6 w-6" fill="currentColor" /> : <StarOff className="h-6 w-6" />}
+              </button>
+            )}
           </form>
         </div>
+
+        {/* Watchlist */}
+        <Watchlist
+          watchlist={watchlist}
+          onRemove={removeFromWatchlist}
+          onSelect={(ticker) => {
+            setSymbol(ticker);
+            getPrediction(ticker);
+            getHistoricalData(ticker);
+            getStockInfo(ticker);
+          }}
+          darkMode={darkMode}
+        />
+
+        {/* Comparison View Modal */}
+        {showComparison && (
+          <ComparisonView
+            comparisonData={comparisonData}
+            comparisonSymbols={comparisonSymbols}
+            onClose={() => setShowComparison(false)}
+            onRemoveSymbol={(ticker) => {
+              removeComparisonSymbol(ticker);
+              setTimeout(fetchComparisonData, 100);
+            }}
+            onAddSymbol={(ticker) => {
+              addComparisonSymbol(ticker);
+              setTimeout(fetchComparisonData, 100);
+            }}
+            darkMode={darkMode}
+          />
+        )}
 
         {/* Error Message */}
         {error && (
@@ -174,19 +325,19 @@ function App() {
         {/* How It Works Modal */}
         {showHowItWorks && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-xl max-w-3xl max-h-[90vh] overflow-y-auto">
+            <div className={`${cardBg} rounded-lg shadow-xl max-w-3xl max-h-[90vh] overflow-y-auto`}>
               <div className="p-6">
                 <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-2xl font-bold text-gray-900">How It Works</h2>
+                  <h2 className={`text-2xl font-bold ${textPrimary}`}>How It Works</h2>
                   <button
                     onClick={() => setShowHowItWorks(false)}
-                    className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+                    className={`${textSecondary} hover:${textPrimary} text-2xl font-bold`}
                   >
                     ×
                   </button>
                 </div>
 
-                <div className="space-y-4 text-gray-700">
+                <div className={`space-y-4 ${textSecondary}`}>
                   <section>
                     <h3 className="text-xl font-semibold text-indigo-600 mb-2">Machine Learning Model</h3>
                     <p>Our predictor uses a <strong>Random Forest Classifier</strong> trained on historical stock data. The model analyzes 30+ technical indicators to predict if a stock will go UP or DOWN the next trading day.</p>
@@ -258,13 +409,13 @@ function App() {
 
         {/* Prediction Card */}
         {loading && !prediction ? (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h2 className="text-2xl font-bold mb-6 text-gray-800">Loading Prediction...</h2>
+          <div className={`${cardBg} rounded-lg shadow-md p-6 mb-6`}>
+            <h2 className={`text-2xl font-bold mb-6 ${textPrimary}`}>Loading Prediction...</h2>
             <LoadingSkeleton />
           </div>
         ) : prediction ? (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h2 className="text-2xl font-bold mb-6 text-gray-800">
+          <div className={`${cardBg} rounded-lg shadow-md p-6 mb-6`}>
+            <h2 className={`text-2xl font-bold mb-6 ${textPrimary}`}>
               Prediction for {prediction.symbol}
             </h2>
 
@@ -352,12 +503,12 @@ function App() {
 
         {/* Historical Chart */}
         {loading && historicalData.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-md p-6">
+          <div className={`${cardBg} rounded-lg shadow-md p-6`}>
             <ChartSkeleton />
           </div>
         ) : historicalData.length > 0 ? (
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-2xl font-bold mb-6 text-gray-800">
+          <div className={`${cardBg} rounded-lg shadow-md p-6`}>
+            <h2 className={`text-2xl font-bold mb-6 ${textPrimary}`}>
               3-Month Price History
             </h2>
             <ResponsiveContainer width="100%" height={400}>
@@ -398,9 +549,9 @@ function App() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-white shadow-md mt-12">
+      <footer className={`${cardBg} shadow-md mt-12`}>
         <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-          <p className="text-center text-gray-600 text-sm">
+          <p className={`text-center ${textSecondary} text-sm`}>
             Built with React, Flask, and Machine Learning | Model: Random Forest (51.88% accuracy)
           </p>
         </div>
