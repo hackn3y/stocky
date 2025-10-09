@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar } from 'recharts';
-import { TrendingUp, TrendingDown, Activity, AlertCircle, Info, Moon, Sun, Star, StarOff, BarChart3, Download, Share2, Clock, ChevronDown, ChevronUp, User, LogOut } from 'lucide-react';
+import { TrendingUp, TrendingDown, Activity, AlertCircle, Info, Moon, Sun, Star, StarOff, BarChart3, Download, Share2, Clock, ChevronDown, ChevronUp, User, LogOut, Search } from 'lucide-react';
 import Watchlist from './Watchlist';
 import ComparisonView from './ComparisonView';
 import Portfolio from './Portfolio';
@@ -13,6 +13,9 @@ import SocialFeed from './SocialFeed';
 import BacktestingDashboard from './BacktestingDashboard';
 import AlertsPanel from './AlertsPanel';
 import AIAssistant from './AIAssistant';
+import PaperTrading from './PaperTrading';
+import TechnicalChart from './TechnicalChart';
+import PerformanceAnalytics from './PerformanceAnalytics';
 import { useAuth } from './AuthContext';
 import { exportToCSV, sharePrediction, copyToClipboard } from './utils';
 import './index.css';
@@ -92,6 +95,10 @@ function App() {
   // Advanced features state
   const [showAuthModal, setShowAuthModal] = useState(false);
 
+  // Stock search state
+  const [searchResults, setSearchResults] = useState([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+
   // Refs
   const searchInputRef = useRef(null);
 
@@ -168,6 +175,35 @@ function App() {
     }
   };
 
+  // Stock search function
+  const searchStocks = async (query) => {
+    if (query.length < 1) {
+      setSearchResults([]);
+      return;
+    }
+
+    try {
+      const response = await axios.get(`${API_URL}/search?q=${encodeURIComponent(query)}`);
+      if (response.data.success) {
+        setSearchResults(response.data.results);
+      }
+    } catch (err) {
+      console.error('Search error:', err);
+      setSearchResults([]);
+    }
+  };
+
+  // Handle symbol input change with debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (symbol && symbol.length >= 1 && !loading) {
+        searchStocks(symbol);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [symbol]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Handle symbol submission
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -177,7 +213,19 @@ function App() {
       getPrediction(ticker);
       getHistoricalData(ticker);
       getStockInfo(ticker);
+      setShowSearchResults(false);
+      setShowHistory(false);
     }
+  };
+
+  // Handle stock selection from search
+  const selectStock = (stock) => {
+    setSymbol(stock.symbol);
+    getPrediction(stock.symbol);
+    getHistoricalData(stock.symbol);
+    getStockInfo(stock.symbol);
+    setShowSearchResults(false);
+    setShowHistory(false);
   };
 
   // Load default data on mount
@@ -406,19 +454,55 @@ function App() {
           <div className="relative">
             <form onSubmit={handleSubmit} className="flex gap-2">
               <div className="flex-1 relative">
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  value={symbol}
-                  onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-                  onFocus={() => setShowHistory(true)}
-                  onBlur={() => setTimeout(() => setShowHistory(false), 200)}
-                  className={`w-full px-4 py-3 border-2 ${borderColor} rounded-lg focus:outline-none focus:border-indigo-500 text-lg font-semibold ${textPrimary} ${darkMode ? 'bg-gray-700' : 'bg-white'}`}
-                  placeholder="Enter stock symbol (e.g., SPY, AAPL, TSLA)"
-                  disabled={loading}
-                />
+                <div className="relative">
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    value={symbol}
+                    onChange={(e) => setSymbol(e.target.value.toUpperCase())}
+                    onFocus={() => {
+                      setShowHistory(true);
+                      setShowSearchResults(true);
+                    }}
+                    onBlur={() => setTimeout(() => {
+                      setShowHistory(false);
+                      setShowSearchResults(false);
+                    }, 200)}
+                    className={`w-full px-4 py-3 pl-12 border-2 ${borderColor} rounded-lg focus:outline-none focus:border-indigo-500 text-lg font-semibold ${textPrimary} ${darkMode ? 'bg-gray-700' : 'bg-white'}`}
+                    placeholder="Search by name or symbol (e.g., Facebook, META, Apple)"
+                    disabled={loading}
+                  />
+                  <Search className={`absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 ${textSecondary}`} />
+                </div>
+
+                {/* Stock Search Results */}
+                {showSearchResults && symbol.length >= 1 && searchResults.length > 0 && (
+                  <div className={`absolute z-10 w-full mt-2 ${cardBg} border ${borderColor} rounded-lg shadow-lg max-h-80 overflow-y-auto`}>
+                    <div className={`px-3 py-2 border-b ${borderColor} flex items-center gap-2`}>
+                      <Search className="h-4 w-4 text-blue-500" />
+                      <span className={`text-sm font-semibold ${textSecondary}`}>Search Results</span>
+                    </div>
+                    {searchResults.map((stock, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => selectStock(stock)}
+                        className={`w-full text-left px-4 py-3 hover:bg-blue-50 dark:hover:bg-blue-900 dark:hover:bg-opacity-20 ${textPrimary} transition-colors border-b ${borderColor} last:border-b-0`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="font-semibold">{stock.symbol}</div>
+                            <div className={`text-sm ${textSecondary}`}>{stock.name}</div>
+                          </div>
+                          <TrendingUp className="h-4 w-4 text-blue-500" />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
                 {/* Search History Dropdown */}
-                {showHistory && searchHistory.length > 0 && (
+                {showHistory && !showSearchResults && searchHistory.length > 0 && (
                   <div className={`absolute z-10 w-full mt-2 ${cardBg} border ${borderColor} rounded-lg shadow-lg max-h-60 overflow-y-auto`}>
                     <div className={`px-3 py-2 border-b ${borderColor} flex items-center gap-2`}>
                       <Clock className="h-4 w-4 text-gray-500" />
@@ -885,6 +969,24 @@ function App() {
         {prediction && (
           <NewsPanel symbol={symbol} darkMode={darkMode} />
         )}
+
+        {/* Technical Chart with Indicators */}
+        <TechnicalChart
+          historicalData={historicalData}
+          darkMode={darkMode}
+          symbol={symbol}
+        />
+
+        {/* Paper Trading Simulator */}
+        <PaperTrading
+          darkMode={darkMode}
+          currentSymbol={symbol}
+          currentPrice={prediction?.current_price}
+          prediction={prediction}
+        />
+
+        {/* Performance Analytics */}
+        <PerformanceAnalytics predictions={predictions} darkMode={darkMode} />
 
         {/* Social Feed */}
         <SocialFeed darkMode={darkMode} />
