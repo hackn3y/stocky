@@ -648,13 +648,13 @@ function App() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Prediction Result */}
-              <div className={`p-6 rounded-lg ${
+              <div className={`p-6 rounded-lg border-2 ${
                 prediction.prediction === 'UP'
-                  ? 'bg-green-50 border-2 border-green-200'
-                  : 'bg-red-50 border-2 border-red-200'
+                  ? darkMode ? 'bg-green-900 bg-opacity-20 border-green-700' : 'bg-green-50 border-green-200'
+                  : darkMode ? 'bg-red-900 bg-opacity-20 border-red-700' : 'bg-red-50 border-red-200'
               }`}>
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-lg font-medium text-gray-700">Direction</span>
+                  <span className={`text-lg font-medium ${textPrimary}`}>Direction</span>
                   {prediction.prediction === 'UP' ? (
                     <TrendingUp className="h-8 w-8 text-green-600" />
                   ) : (
@@ -666,26 +666,26 @@ function App() {
                 }`}>
                   {prediction.prediction}
                 </div>
-                <div className="mt-2 text-sm text-gray-600">
+                <div className={`mt-2 text-sm ${textSecondary}`}>
                   Next trading day prediction
                 </div>
               </div>
 
               {/* Confidence */}
-              <div className="p-6 bg-blue-50 rounded-lg border-2 border-blue-200">
-                <div className="text-lg font-medium text-gray-700 mb-4">Confidence</div>
+              <div className={`p-6 rounded-lg border-2 ${darkMode ? 'bg-blue-900 bg-opacity-20 border-blue-700' : 'bg-blue-50 border-blue-200'}`}>
+                <div className={`text-lg font-medium ${textPrimary} mb-4`}>Confidence</div>
                 <div className="text-4xl font-bold text-blue-600">
                   {prediction.confidence.toFixed(1)}%
                 </div>
                 <div className="mt-4 space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Up Probability</span>
+                    <span className={textSecondary}>Up Probability</span>
                     <span className="font-semibold text-green-600">
                       {prediction.probabilities.up.toFixed(1)}%
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Down Probability</span>
+                    <span className={textSecondary}>Down Probability</span>
                     <span className="font-semibold text-red-600">
                       {prediction.probabilities.down.toFixed(1)}%
                     </span>
@@ -694,12 +694,12 @@ function App() {
               </div>
 
               {/* Current Price */}
-              <div className="p-6 bg-gray-50 rounded-lg border-2 border-gray-200">
-                <div className="text-lg font-medium text-gray-700 mb-4">Current Price</div>
-                <div className="text-4xl font-bold text-gray-800">
+              <div className={`p-6 rounded-lg border-2 ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'}`}>
+                <div className={`text-lg font-medium ${textPrimary} mb-4`}>Current Price</div>
+                <div className={`text-4xl font-bold ${textPrimary}`}>
                   ${prediction.current_price.toFixed(2)}
                 </div>
-                <div className="mt-2 text-sm text-gray-600">
+                <div className={`mt-2 text-sm ${textSecondary}`}>
                   Latest closing price
                 </div>
               </div>
@@ -819,45 +819,61 @@ function App() {
             <ResponsiveContainer width="100%" height={400}>
               {chartType === 'line' ? (
                 <LineChart data={historicalData}>
-                  <CartesianGrid strokeDasharray="3 3" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#4B5563' : '#E5E7EB'} />
                   <XAxis
                     dataKey="date"
-                    tick={{ fontSize: 12 }}
+                    tick={{ fontSize: 12, fill: darkMode ? '#9CA3AF' : '#374151' }}
                     interval="preserveStartEnd"
+                    stroke={darkMode ? '#6B7280' : '#9CA3AF'}
                   />
                   <YAxis
                     domain={['auto', 'auto']}
-                    tick={{ fontSize: 12 }}
+                    tick={{ fontSize: 12, fill: darkMode ? '#9CA3AF' : '#374151' }}
+                    stroke={darkMode ? '#6B7280' : '#9CA3AF'}
                   />
                   <Tooltip
-                    contentStyle={{ backgroundColor: darkMode ? '#374151' : 'white', border: '1px solid #ccc' }}
+                    contentStyle={{
+                      backgroundColor: darkMode ? '#374151' : 'white',
+                      color: darkMode ? '#F3F4F6' : '#1F2937',
+                      border: `1px solid ${darkMode ? '#4B5563' : '#D1D5DB'}`,
+                      borderRadius: '8px'
+                    }}
+                    labelStyle={{ color: darkMode ? '#F3F4F6' : '#1F2937' }}
                   />
                   <Line
                     type="monotone"
                     dataKey="price"
-                    stroke="#4F46E5"
+                    stroke={darkMode ? '#818CF8' : '#4F46E5'}
                     strokeWidth={2}
                     dot={false}
                   />
                 </LineChart>
               ) : (
                 <BarChart data={historicalData}>
-                  <CartesianGrid strokeDasharray="3 3" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#4B5563' : '#E5E7EB'} />
                   <XAxis
                     dataKey="date"
-                    tick={{ fontSize: 12 }}
+                    tick={{ fontSize: 12, fill: darkMode ? '#9CA3AF' : '#374151' }}
                     interval="preserveStartEnd"
+                    stroke={darkMode ? '#6B7280' : '#9CA3AF'}
                   />
                   <YAxis
                     domain={['auto', 'auto']}
-                    tick={{ fontSize: 12 }}
+                    tick={{ fontSize: 12, fill: darkMode ? '#9CA3AF' : '#374151' }}
+                    stroke={darkMode ? '#6B7280' : '#9CA3AF'}
                   />
                   <Tooltip
-                    contentStyle={{ backgroundColor: darkMode ? '#374151' : 'white', border: '1px solid #ccc' }}
+                    contentStyle={{
+                      backgroundColor: darkMode ? '#374151' : 'white',
+                      color: darkMode ? '#F3F4F6' : '#1F2937',
+                      border: `1px solid ${darkMode ? '#4B5563' : '#D1D5DB'}`,
+                      borderRadius: '8px'
+                    }}
+                    labelStyle={{ color: darkMode ? '#F3F4F6' : '#1F2937' }}
                   />
                   <Bar
                     dataKey="price"
-                    fill="#4F46E5"
+                    fill={darkMode ? '#818CF8' : '#4F46E5'}
                   />
                 </BarChart>
               )}
