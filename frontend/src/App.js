@@ -1,3 +1,4 @@
+// Version 2.0.1 - Fixed React error #185 with proper Suspense boundaries
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import axios from 'axios';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar } from 'recharts';
@@ -35,7 +36,8 @@ const LoadingFallback = ({ darkMode }) => (
   </div>
 );
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// Force use Railway backend in production
+const API_URL = process.env.REACT_APP_API_URL || 'https://stocky-production-16bc.up.railway.app/api';
 
 // Utility functions for localStorage
 const getFromStorage = (key, defaultValue) => {
