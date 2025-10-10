@@ -238,11 +238,21 @@ function App() {
     setShowHistory(false);
   };
 
-  // Load default data on mount
+  // Load default data on mount - only once
   useEffect(() => {
-    getPrediction();
-    getHistoricalData();
-    getStockInfo();
+    // Add a flag to prevent multiple calls
+    let mounted = true;
+
+    if (mounted) {
+      getPrediction();
+      getHistoricalData();
+      getStockInfo();
+    }
+
+    // Cleanup function
+    return () => {
+      mounted = false;
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Dark mode effect

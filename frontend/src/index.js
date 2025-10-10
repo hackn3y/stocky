@@ -16,7 +16,9 @@ root.render(
   </React.StrictMode>
 );
 
-// Register service worker for PWA
+// Register service worker for PWA - DISABLED temporarily to fix refresh loop
+// Uncomment when service-worker.js is properly configured
+/*
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker
@@ -29,3 +31,4 @@ if ('serviceWorker' in navigator) {
       });
   });
 }
+*/
