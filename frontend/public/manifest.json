@@ -1,42 +1,42 @@
 {
-  "short_name": "Stock Predictor",
-  "name": "Stock Market Predictor - AI Powered",
+  "short_name": "Stocky",
+  "name": "Stocky - Stock Market Predictor",
   "description": "Machine learning-powered stock prediction app with 30+ technical indicators. Predict next-day stock movements with confidence scores.",
   "icons": [
     {
-      "src": "favicon.ico",
+      "src": "favicon.ico?v=2",
       "type": "image/x-icon",
       "sizes": "48x48"
     },
     {
-      "src": "icon-192.png",
+      "src": "icon-192.png?v=2",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "any"
     },
     {
-      "src": "icon-512.png",
+      "src": "icon-512.png?v=2",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any"
     },
     {
-      "src": "web-app-manifest-192x192.png",
+      "src": "web-app-manifest-192x192.png?v=2",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "maskable"
     },
     {
-      "src": "web-app-manifest-512x512.png",
+      "src": "web-app-manifest-512x512.png?v=2",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "maskable"
     }
   ],
-  "start_url": "/",
+  "start_url": "/?v=2",
   "display": "standalone",
-  "theme_color": "#4F46E5",
-  "background_color": "#ffffff",
+  "theme_color": "#6366F1",
+  "background_color": "#6366F1",
   "orientation": "portrait-primary",
   "scope": "/",
   "categories": ["finance", "business", "productivity"]
