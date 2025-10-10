@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 
 const AuthContext = createContext();
 
@@ -42,7 +42,7 @@ export const AuthProvider = ({ children }) => {
     }
   }, [users]);
 
-  const signup = (email, password, username) => {
+  const signup = useCallback((email, password, username) => {
     // Check if user exists
     const existingUser = users.find(u => u.email === email);
     if (existingUser) {
@@ -75,9 +75,9 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('stocky_current_user', JSON.stringify(userWithoutPassword));
 
     return { success: true, user: userWithoutPassword };
-  };
+  }, [users]);
 
-  const login = (email, password) => {
+  const login = useCallback((email, password) => {
     const foundUser = users.find(u => u.email === email && u.password === password);
 
     if (!foundUser) {
@@ -90,14 +90,14 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('stocky_current_user', JSON.stringify(userWithoutPassword));
 
     return { success: true, user: userWithoutPassword };
-  };
+  }, [users]);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setUser(null);
     localStorage.removeItem('stocky_current_user');
-  };
+  }, []);
 
-  const updateUser = (updates) => {
+  const updateUser = useCallback((updates) => {
     setUser(prevUser => {
       const updatedUser = { ...prevUser, ...updates };
       localStorage.setItem('stocky_current_user', JSON.stringify(updatedUser));
@@ -109,9 +109,9 @@ export const AuthProvider = ({ children }) => {
 
       return updatedUser;
     });
-  };
+  }, []);
 
-  const followUser = (targetUserId) => {
+  const followUser = useCallback((targetUserId) => {
     if (!user) return { success: false, error: 'Not logged in' };
 
     const following = user.following || [];
@@ -133,9 +133,9 @@ export const AuthProvider = ({ children }) => {
     }));
 
     return { success: true };
-  };
+  }, [user, updateUser]);
 
-  const unfollowUser = (targetUserId) => {
+  const unfollowUser = useCallback((targetUserId) => {
     if (!user) return { success: false, error: 'Not logged in' };
 
     const currentUserId = user.id;
@@ -153,9 +153,9 @@ export const AuthProvider = ({ children }) => {
     }));
 
     return { success: true };
-  };
+  }, [user, updateUser]);
 
-  const getPublicUsers = () => {
+  const getPublicUsers = useCallback(() => {
     // Return users without passwords
     return users.map(u => ({
       id: u.id,
@@ -165,18 +165,21 @@ export const AuthProvider = ({ children }) => {
       followers: u.followers || [],
       following: u.following || []
     }));
-  };
+  }, [users]);
 
-  const getUserById = (userId) => {
+  const getUserById = useCallback((userId) => {
     const foundUser = users.find(u => u.id === userId);
     if (!foundUser) return null;
 
     const publicUser = { ...foundUser };
     delete publicUser.password;
     return publicUser;
-  };
+  }, [users]);
 
-  const value = {
+  // Memoize public users to prevent infinite re-renders
+  const publicUsers = useMemo(() => getPublicUsers(), [getPublicUsers]);
+
+  const value = useMemo(() => ({
     user,
     isAuthenticated: !!user,
     signup,
@@ -187,8 +190,8 @@ export const AuthProvider = ({ children }) => {
     unfollowUser,
     getPublicUsers,
     getUserById,
-    users: getPublicUsers()
-  };
+    users: publicUsers
+  }), [user, publicUsers, signup, login, logout, updateUser, followUser, unfollowUser, getPublicUsers, getUserById]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
