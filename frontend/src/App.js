@@ -111,7 +111,7 @@ function App() {
   const isOnline = useNetworkStatus();
 
   // Existing state
-  const [symbol, setSymbol] = useState('SPY');
+  const [symbol, setSymbol] = useState(() => getFromStorage('lastSymbol', 'SPY'));
   const [prediction, setPrediction] = useState(null);
   const [historicalData, setHistoricalData] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -300,6 +300,7 @@ function App() {
     if (symbol.trim()) {
       const ticker = symbol.trim().toUpperCase();
       setSymbol(ticker);
+      saveToStorage('lastSymbol', ticker); // Remember last searched symbol
       getPrediction(ticker);
       getHistoricalData(ticker);
       getStockInfo(ticker);
@@ -311,6 +312,7 @@ function App() {
   // Handle stock selection from search
   const selectStock = (stock) => {
     setSymbol(stock.symbol);
+    saveToStorage('lastSymbol', stock.symbol); // Remember last searched symbol
     getPrediction(stock.symbol);
     getHistoricalData(stock.symbol);
     getStockInfo(stock.symbol);
@@ -582,7 +584,7 @@ function App() {
                       setShowHistory(false);
                       setShowSearchResults(false);
                     }, 200)}
-                    className={`w-full px-4 py-4 md:py-3 pl-12 md:pl-12 text-base md:text-lg border-2 ${borderColor} rounded-lg focus:outline-none focus:border-indigo-500 font-semibold ${textPrimary} ${darkMode ? 'bg-gray-700' : 'bg-white'}`}
+                    className={`w-full px-4 py-5 md:py-3 pl-12 md:pl-12 text-lg md:text-lg border-2 ${borderColor} rounded-lg focus:outline-none focus:border-indigo-500 font-semibold ${textPrimary} ${darkMode ? 'bg-gray-700' : 'bg-white'}`}
                     placeholder="Search symbol (e.g., AAPL, META)"
                     disabled={loading}
                   />
@@ -628,6 +630,7 @@ function App() {
                         type="button"
                         onClick={() => {
                           setSymbol(hist);
+                          saveToStorage('lastSymbol', hist); // Remember last searched symbol
                           getPrediction(hist);
                           getHistoricalData(hist);
                           getStockInfo(hist);
@@ -695,6 +698,7 @@ function App() {
             onRemove={removeFromWatchlist}
             onSelect={(ticker) => {
               setSymbol(ticker);
+              saveToStorage('lastSymbol', ticker); // Remember last searched symbol
               getPrediction(ticker);
               getHistoricalData(ticker);
               getStockInfo(ticker);
