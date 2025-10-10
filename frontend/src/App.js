@@ -65,6 +65,25 @@ const getTimeframeLabel = (period) => {
   return labels[period] || '3-Month';
 };
 
+// Utility function to reduce data points for better chart performance
+const reduceDataPoints = (data, maxPoints = 200) => {
+  if (data.length <= maxPoints) return data;
+
+  const step = Math.ceil(data.length / maxPoints);
+  const reduced = [];
+
+  for (let i = 0; i < data.length; i += step) {
+    reduced.push(data[i]);
+  }
+
+  // Always include the last data point
+  if (reduced[reduced.length - 1] !== data[data.length - 1]) {
+    reduced.push(data[data.length - 1]);
+  }
+
+  return reduced;
+};
+
 // Utility functions for localStorage
 const getFromStorage = (key, defaultValue) => {
   try {
@@ -209,7 +228,8 @@ function App() {
           price: data.close[index],
           volume: data.volume[index]
         }));
-        setHistoricalData(formattedData);
+        // Apply data reduction for better chart performance
+        setHistoricalData(reduceDataPoints(formattedData));
       }
     } catch (err) {
       console.error('Historical data error:', err);
