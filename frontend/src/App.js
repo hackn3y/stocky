@@ -1,4 +1,4 @@
-// Version 2.0.2 - Mobile search bar improvements and version indicator
+// Version 2.0.3 - Responsive mobile search layout with full-width input
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import axios from 'axios';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar } from 'recharts';
@@ -568,8 +568,9 @@ function App() {
         {/* Search Form */}
         <div className={`${cardBg} rounded-lg shadow-md p-6 mb-6`}>
           <div className="relative">
-            <form onSubmit={handleSubmit} className="flex gap-2">
-              <div className="flex-1 relative">
+            <form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-3">
+              {/* Search Input - Full width on mobile, flex on desktop */}
+              <div className="w-full md:flex-1 relative">
                 <div className="relative">
                   <input
                     ref={searchInputRef}
@@ -584,11 +585,11 @@ function App() {
                       setShowHistory(false);
                       setShowSearchResults(false);
                     }, 200)}
-                    className={`w-full px-4 py-6 md:py-3 pl-14 md:pl-12 text-xl md:text-lg border-2 ${borderColor} rounded-lg focus:outline-none focus:border-indigo-500 font-semibold ${textPrimary} ${darkMode ? 'bg-gray-700' : 'bg-white'} min-h-[60px] md:min-h-0`}
+                    className={`w-full px-4 py-4 md:py-3 pl-12 text-lg border-2 ${borderColor} rounded-lg focus:outline-none focus:border-indigo-500 font-semibold ${textPrimary} ${darkMode ? 'bg-gray-700' : 'bg-white'}`}
                     placeholder="Search symbol (e.g., AAPL, META)"
                     disabled={loading}
                   />
-                  <Search className={`absolute left-4 md:left-4 top-1/2 transform -translate-y-1/2 h-6 w-6 md:h-5 md:w-5 ${textSecondary}`} />
+                  <Search className={`absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 ${textSecondary}`} />
                 </div>
 
                 {/* Stock Search Results */}
@@ -644,49 +645,53 @@ function App() {
                   </div>
                 )}
               </div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-              >
-                {loading ? 'Loading...' : 'Predict'}
-              </button>
-              {prediction && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => isInWatchlist(symbol) ? removeFromWatchlist(symbol) : addToWatchlist(symbol)}
-                    className={`p-3 rounded-lg transition-colors ${isInWatchlist(symbol) ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'}`}
-                    title={isInWatchlist(symbol) ? 'Remove from watchlist' : 'Add to watchlist'}
-                  >
-                    {isInWatchlist(symbol) ? <Star className="h-6 w-6" fill="currentColor" /> : <StarOff className="h-6 w-6" />}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => exportToCSV(prediction, historicalData, stockInfo)}
-                    className="p-3 bg-green-100 text-green-600 hover:bg-green-200 rounded-lg transition-colors"
-                    title="Export to CSV"
-                  >
-                    <Download className="h-6 w-6" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShareMenu(!shareMenu)}
-                    className="p-3 bg-blue-100 text-blue-600 hover:bg-blue-200 rounded-lg transition-colors relative"
-                    title="Share"
-                  >
-                    <Share2 className="h-6 w-6" />
-                    {shareMenu && (
-                      <div className={`absolute right-0 top-full mt-2 ${cardBg} border ${borderColor} rounded-lg shadow-lg py-2 z-10 min-w-[150px]`}>
-                        <button onClick={() => { sharePrediction(prediction, 'twitter'); setShareMenu(false); }} className={`w-full text-left px-4 py-2 ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} ${textPrimary}`}>Twitter</button>
-                        <button onClick={() => { sharePrediction(prediction, 'linkedin'); setShareMenu(false); }} className={`w-full text-left px-4 py-2 ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} ${textPrimary}`}>LinkedIn</button>
-                        <button onClick={() => { sharePrediction(prediction, 'facebook'); setShareMenu(false); }} className={`w-full text-left px-4 py-2 ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} ${textPrimary}`}>Facebook</button>
-                        <button onClick={() => { copyToClipboard(`${prediction.symbol}: ${prediction.prediction} (${prediction.confidence.toFixed(1)}%)`); setShareMenu(false); }} className={`w-full text-left px-4 py-2 ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} ${textPrimary}`}>Copy</button>
-                      </div>
-                    )}
-                  </button>
-                </>
-              )}
+
+              {/* Action Buttons - Wrap on mobile, inline on desktop */}
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex-1 md:flex-none px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                >
+                  {loading ? 'Loading...' : 'Predict'}
+                </button>
+                {prediction && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => isInWatchlist(symbol) ? removeFromWatchlist(symbol) : addToWatchlist(symbol)}
+                      className={`p-3 rounded-lg transition-colors ${isInWatchlist(symbol) ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'}`}
+                      title={isInWatchlist(symbol) ? 'Remove from watchlist' : 'Add to watchlist'}
+                    >
+                      {isInWatchlist(symbol) ? <Star className="h-6 w-6" fill="currentColor" /> : <StarOff className="h-6 w-6" />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => exportToCSV(prediction, historicalData, stockInfo)}
+                      className="p-3 bg-green-100 text-green-600 hover:bg-green-200 rounded-lg transition-colors"
+                      title="Export to CSV"
+                    >
+                      <Download className="h-6 w-6" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShareMenu(!shareMenu)}
+                      className="p-3 bg-blue-100 text-blue-600 hover:bg-blue-200 rounded-lg transition-colors relative"
+                      title="Share"
+                    >
+                      <Share2 className="h-6 w-6" />
+                      {shareMenu && (
+                        <div className={`absolute right-0 top-full mt-2 ${cardBg} border ${borderColor} rounded-lg shadow-lg py-2 z-10 min-w-[150px]`}>
+                          <button onClick={() => { sharePrediction(prediction, 'twitter'); setShareMenu(false); }} className={`w-full text-left px-4 py-2 ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} ${textPrimary}`}>Twitter</button>
+                          <button onClick={() => { sharePrediction(prediction, 'linkedin'); setShareMenu(false); }} className={`w-full text-left px-4 py-2 ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} ${textPrimary}`}>LinkedIn</button>
+                          <button onClick={() => { sharePrediction(prediction, 'facebook'); setShareMenu(false); }} className={`w-full text-left px-4 py-2 ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} ${textPrimary}`}>Facebook</button>
+                          <button onClick={() => { copyToClipboard(`${prediction.symbol}: ${prediction.prediction} (${prediction.confidence.toFixed(1)}%)`); setShareMenu(false); }} className={`w-full text-left px-4 py-2 ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} ${textPrimary}`}>Copy</button>
+                        </div>
+                      )}
+                    </button>
+                  </>
+                )}
+              </div>
             </form>
           </div>
         </div>
@@ -1200,7 +1205,7 @@ function App() {
               Built with React, Flask, and Machine Learning | Model: Enhanced Ensemble (54.51% accuracy)
             </p>
             <span className={`text-xs ${textSecondary} opacity-75`}>
-              v2.0.2
+              v2.0.3
             </span>
           </div>
         </div>
