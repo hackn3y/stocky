@@ -8,7 +8,21 @@ import traceback
 from auth import auth_bp  # Import auth blueprint
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for React frontend
+# Enable CORS for React frontend - allow Vercel and localhost
+CORS(app, resources={
+    r"/api/*": {
+        "origins": [
+            "https://stocky-mu.vercel.app",
+            "http://localhost:3000",
+            "http://localhost:5000"
+        ],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "expose_headers": ["Content-Type"],
+        "supports_credentials": True,
+        "max_age": 3600
+    }
+})
 
 # Register auth blueprint
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
