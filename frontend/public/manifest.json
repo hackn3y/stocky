@@ -27,19 +27,5 @@
   "background_color": "#ffffff",
   "orientation": "portrait-primary",
   "scope": "/",
-  "categories": ["finance", "business", "productivity"],
-  "screenshots": [
-    {
-      "src": "screenshot-mobile.png",
-      "type": "image/png",
-      "sizes": "540x720",
-      "form_factor": "narrow"
-    },
-    {
-      "src": "screenshot-desktop.png",
-      "type": "image/png",
-      "sizes": "1280x720",
-      "form_factor": "wide"
-    }
-  ]
+  "categories": ["finance", "business", "productivity"]
 }
