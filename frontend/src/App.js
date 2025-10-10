@@ -128,13 +128,19 @@ function App() {
           date: new Date().toISOString(),
           actual: null // Will be resolved later
         };
-        const updatedPredictions = [newPrediction, ...predictions].slice(0, 50);
-        setPredictions(updatedPredictions);
+        setPredictions(prevPredictions => {
+          const updatedPredictions = [newPrediction, ...prevPredictions].slice(0, 50);
 
-        // Sync with auth context if logged in
-        if (isAuthenticated && updateUser) {
-          updateUser({ predictions: updatedPredictions });
-        }
+          // Sync with auth context if logged in (after state update)
+          if (isAuthenticated && updateUser) {
+            // Use setTimeout to defer state update to next tick
+            setTimeout(() => {
+              updateUser({ predictions: updatedPredictions });
+            }, 0);
+          }
+
+          return updatedPredictions;
+        });
 
         // Success toast
         addToast(`Prediction for ${ticker}: ${response.data.prediction}`, 'success', 3000);
