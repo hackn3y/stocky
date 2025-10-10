@@ -16,20 +16,37 @@ export const AuthProvider = ({ children }) => {
     try {
       const stored = localStorage.getItem('stocky_users');
       return stored ? JSON.parse(stored) : [];
-    } catch {
+    } catch (error) {
+      console.error('Failed to load users from localStorage:', error);
       return [];
     }
   });
 
   useEffect(() => {
+    // Check localStorage availability
+    try {
+      const testKey = '__localStorage_test__';
+      localStorage.setItem(testKey, 'test');
+      localStorage.removeItem(testKey);
+      console.log('localStorage is available');
+    } catch (e) {
+      console.error('localStorage is NOT available in this browser:', e);
+      console.error('This may be due to:');
+      console.error('1. Private/InPrivate browsing mode');
+      console.error('2. Browser storage disabled in settings');
+      console.error('3. Storage quota exceeded');
+    }
+
     // Check if user is logged in
-    const currentUser = localStorage.getItem('stocky_current_user');
-    if (currentUser) {
-      try {
+    try {
+      const currentUser = localStorage.getItem('stocky_current_user');
+      if (currentUser) {
         setUser(JSON.parse(currentUser));
-      } catch {
-        localStorage.removeItem('stocky_current_user');
+        console.log('User restored from localStorage');
       }
+    } catch (error) {
+      console.error('Failed to restore user from localStorage:', error);
+      localStorage.removeItem('stocky_current_user');
     }
   }, []);
 
@@ -78,18 +95,36 @@ export const AuthProvider = ({ children }) => {
   }, [users]);
 
   const login = useCallback((email, password) => {
-    const foundUser = users.find(u => u.email === email && u.password === password);
+    try {
+      console.log('Login attempt:', { email, usersCount: users.length });
 
-    if (!foundUser) {
-      return { success: false, error: 'Invalid email or password' };
+      const foundUser = users.find(u => u.email === email && u.password === password);
+
+      if (!foundUser) {
+        console.log('Login failed: User not found or password incorrect');
+        return { success: false, error: 'Invalid email or password' };
+      }
+
+      const userWithoutPassword = { ...foundUser };
+      delete userWithoutPassword.password;
+
+      setUser(userWithoutPassword);
+
+      // Test localStorage availability
+      try {
+        localStorage.setItem('stocky_current_user', JSON.stringify(userWithoutPassword));
+        console.log('Login successful, user saved to localStorage');
+      } catch (storageError) {
+        console.error('localStorage error in Edge:', storageError);
+        // Still set user in state even if localStorage fails
+        return { success: false, error: 'Storage not available. Try enabling cookies/storage in browser settings.' };
+      }
+
+      return { success: true, user: userWithoutPassword };
+    } catch (error) {
+      console.error('Login error:', error);
+      return { success: false, error: 'Login failed: ' + error.message };
     }
-
-    const userWithoutPassword = { ...foundUser };
-    delete userWithoutPassword.password;
-    setUser(userWithoutPassword);
-    localStorage.setItem('stocky_current_user', JSON.stringify(userWithoutPassword));
-
-    return { success: true, user: userWithoutPassword };
   }, [users]);
 
   const logout = useCallback(() => {

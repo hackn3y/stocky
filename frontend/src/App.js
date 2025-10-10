@@ -1,4 +1,4 @@
-// Version 2.0.9 - Regenerate favicon.ico with Stocky branding
+// Version 2.1.0 - Add localStorage debugging for Edge login issues
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import axios from 'axios';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar } from 'recharts';
@@ -1205,7 +1205,7 @@ function App() {
               Built with React, Flask, and Machine Learning | Model: Enhanced Ensemble (54.51% accuracy)
             </p>
             <span className={`text-xs ${textSecondary} opacity-75`}>
-              v2.0.9
+              v2.1.0
             </span>
           </div>
         </div>
