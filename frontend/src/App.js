@@ -189,18 +189,18 @@ function App() {
   // Fetch historical data with timeframe support
   const getHistoricalData = async (ticker = symbol, period = timeframe) => {
     try {
-      // Map timeframes to intervals
-      const intervalMap = {
-        '1d': '5m',    // 1 day: 5-minute intervals
-        '1w': '1h',    // 1 week: 1-hour intervals
-        '1mo': '1d',   // 1 month: 1-day intervals
-        '3mo': '1d',   // 3 months: 1-day intervals
-        '1y': '1d',    // 1 year: 1-day intervals
-        'max': '1wk'   // Max: 1-week intervals
+      // Map timeframes to Yahoo Finance period and interval formats
+      const timeframeConfig = {
+        '1d': { period: '1d', interval: '5m' },     // 1 day: 5-minute intervals
+        '1w': { period: '5d', interval: '1h' },     // 1 week: use 5d with 1-hour intervals
+        '1mo': { period: '1mo', interval: '1d' },   // 1 month: 1-day intervals
+        '3mo': { period: '3mo', interval: '1d' },   // 3 months: 1-day intervals
+        '1y': { period: '1y', interval: '1d' },     // 1 year: 1-day intervals
+        'max': { period: 'max', interval: '1wk' }   // Max: 1-week intervals
       };
 
-      const interval = intervalMap[period] || '1d';
-      const response = await axios.get(`${API_URL}/historical/${ticker}?period=${period}&interval=${interval}`);
+      const config = timeframeConfig[period] || timeframeConfig['3mo'];
+      const response = await axios.get(`${API_URL}/historical/${ticker}?period=${config.period}&interval=${config.interval}`);
 
       if (response.data.success) {
         const data = response.data.data;
