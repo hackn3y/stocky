@@ -543,7 +543,7 @@ def list_assets():
             'SOL-USD', 'MATIC-USD', 'DOT-USD', 'SHIB-USD', 'AVAX-USD', 'LTC-USD',
             'LINK-USD', 'UNI-USD', 'ATOM-USD', 'XLM-USD', 'ALGO-USD', 'BCH-USD'
         ],
-        'note': 'Model is trained on SPY. Other assets may have varying accuracy.'
+        'note': 'Stock model trained on SPY. BTC-USD and XRP-USD use crypto-specific models.'
     }
     return jsonify({
         'success': True,

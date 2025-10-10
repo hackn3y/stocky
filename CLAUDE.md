@@ -4,7 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Full-stack machine learning stock predictor app with Flask backend and React frontend. Predicts next-day stock movement (UP/DOWN) using a Random Forest classifier trained on 30+ technical indicators.
+Full-stack machine learning stock predictor app with Flask backend and React frontend. Predicts next-day stock movement (UP/DOWN) using Random Forest classifiers trained on 30+ technical indicators.
+
+**Key Features:**
+- Stock predictions using trained ML models
+- Cryptocurrency-specific models (BTC-USD, XRP-USD)
+- User authentication with JWT tokens
+- SQLite database with Peewee ORM
+- News, search, and risk metrics endpoints
 
 **Live Deployment:**
 - Frontend: https://stocky-mu.vercel.app/ (Vercel)
@@ -30,8 +37,11 @@ python app.py
 # Test API endpoints (requires running server)
 python test_api.py
 
-# Train/retrain ML model (creates models/spy_model.pkl)
+# Train/retrain stock ML model (creates models/spy_model.pkl)
 python train_model.py
+
+# Train crypto models (creates models/btc_usd_model.pkl, models/xrp_usd_model.pkl)
+python train_crypto_models.py
 
 # Make single prediction
 python predict.py
@@ -66,12 +76,18 @@ npm test
 5. **Response** → JSON returned with prediction, confidence, current price, probabilities
 
 **Key Files:**
-- `app.py` - Flask REST API with 7 endpoints (health, predict, historical, info, batch, assets, model/info)
-- `predict.py` - Prediction logic using trained model
+- `app.py` - Flask REST API with 11+ endpoints (health, predict, historical, info, batch, assets, model/info, news, search, risk-metrics, auth)
+- `predict.py` - Prediction logic with crypto/enhanced/original model routing
 - `feature_engineering.py` - 30 technical indicators (RSI, MACD, Bollinger Bands, Stochastic, ATR, MFI, OBV, Williams %R, CCI, ROC, DI, patterns)
-- `train_model.py` - Model training script (Random Forest, 300 estimators)
+- `train_model.py` - Stock model training script (Random Forest, 300 estimators)
+- `train_crypto_models.py` - Crypto model training (BTC-USD, XRP-USD with 500 estimators)
 - `data_fetcher.py` - Downloads historical stock data via yfinance
-- `models/spy_model.pkl` - Trained model (51.88% test accuracy)
+- `auth.py` - User authentication blueprint (register, login, JWT tokens)
+- `models.py` - Peewee ORM models for SQLite database
+- `model_loader.py` - Smart model loader with GitHub LFS fallback
+- `models/spy_model.pkl` - Trained stock model (51.88% test accuracy)
+- `models/btc_usd_model.pkl` - Trained BTC model
+- `models/xrp_usd_model.pkl` - Trained XRP model
 
 ### Frontend Data Flow
 
@@ -115,6 +131,7 @@ feature_cols = [
 ### Backend (Railway)
 - `PORT` - Auto-set by Railway (default: 5000 locally)
 - `FLASK_ENV` - Set to `production` for deployed environment
+- `JWT_SECRET_KEY` - Secret key for JWT token signing (optional, defaults to placeholder)
 
 ### Frontend (Vercel)
 - `REACT_APP_API_URL` - **REQUIRED**: Backend API URL (e.g., `https://stocky-production-16bc.up.railway.app/api`)
@@ -137,14 +154,33 @@ feature_cols = [
 
 ## API Endpoints Reference
 
+### Core Endpoints
 ```
 GET  /api/health                    - Health check
 GET  /api/model/info                - Model metadata
-GET  /api/predict/<symbol>          - Get prediction for symbol
+GET  /api/predict/<symbol>          - Get prediction for symbol (auto-selects crypto/stock model)
 GET  /api/historical/<symbol>       - Historical OHLCV data (?period=3mo&interval=1d)
 GET  /api/info/<symbol>             - Stock information (name, sector, exchange)
 POST /api/predict/batch             - Batch predictions (body: {"symbols": ["SPY", "AAPL"]})
 GET  /api/assets                    - List supported assets
+```
+
+### New Endpoints
+```
+GET  /api/news/<symbol>             - Get latest news for a stock (limit 10 articles)
+GET  /api/search?q=<query>          - Search stocks by name or symbol
+GET  /api/risk-metrics/<symbol>     - Calculate risk metrics (Sharpe, volatility, beta, VaR, max drawdown)
+```
+
+### Authentication Endpoints
+```
+POST /api/auth/register             - Register new user (body: {email, username, password})
+POST /api/auth/login                - Login user (body: {email, password})
+GET  /api/auth/me                   - Get current user profile (requires JWT token)
+PUT  /api/auth/update               - Update user profile (requires JWT token)
+GET  /api/auth/users                - Get all users (public data only)
+POST /api/auth/follow/<user_id>     - Follow a user (requires JWT token)
+POST /api/auth/unfollow/<user_id>   - Unfollow a user (requires JWT token)
 ```
 
 ## Model Performance
@@ -154,6 +190,26 @@ GET  /api/assets                    - List supported assets
 - **Algorithm**: Random Forest (300 estimators, class_weight='balanced')
 - **Training Data**: ~2,708 days of SPY data
 - **Note**: 52% is only slightly better than random (50%) - for educational purposes only
+
+## Model Architecture & Routing
+
+The prediction system automatically selects the appropriate model:
+
+1. **Crypto Symbols** (contains `-USD`): Uses crypto-specific models
+   - `BTC-USD` → `models/btc_usd_model.pkl` (500 estimators, optimized for crypto volatility)
+   - `XRP-USD` → `models/xrp_usd_model.pkl` (500 estimators, optimized for crypto volatility)
+   - Fallback to stock model if crypto model not found
+
+2. **Stock Symbols**: Uses stock models in priority order
+   - Try `models/enhanced_spy_model.pkl` (with additional features)
+   - Fallback to `models/spy_model.pkl` (original 30 features)
+
+3. **Model Loading**: `model_loader.py` handles GitHub LFS fallback
+   - Detects if model file is an LFS pointer
+   - Automatically downloads real model from GitHub if needed
+   - Prevents corrupted LFS pointer files from breaking predictions
+
+**Key Implementation:** `predict.py:12-37` (load_model function)
 
 ## Common Development Patterns
 
@@ -168,6 +224,26 @@ GET  /api/assets                    - List supported assets
 
 3. Retrain model: `cd backend && python train_model.py`
 
+### Training a New Crypto Model
+
+1. Edit `train_crypto_models.py` to add new symbol
+2. Run training: `cd backend && python train_crypto_models.py`
+3. Model saved to `models/{symbol}_model.pkl` (e.g., `eth_usd_model.pkl`)
+4. Prediction automatically uses crypto model when symbol contains `-USD`
+
+### Adding Protected API Endpoints
+
+1. Import decorator: `from auth import token_required`
+2. Add decorator to route:
+   ```python
+   @app.route('/api/protected', methods=['GET'])
+   @token_required
+   def protected_route(current_user):
+       # current_user is automatically injected
+       return jsonify({'user': current_user.username})
+   ```
+3. Frontend must send JWT token in header: `Authorization: Bearer <token>`
+
 ### Testing Backend Changes Locally
 
 1. Start backend: `cd backend && python app.py`
@@ -181,12 +257,51 @@ If predictions fail, check in this order:
 1. yfinance can download data: `python -c "import yfinance; print(yfinance.Ticker('SPY').history(period='3mo'))"`
 2. Feature calculation works: Check for NaN values in technical indicators
 3. Model file exists: `backend/models/spy_model.pkl` (46MB file)
-4. Feature count matches: Model expects exactly 30 features
-5. Check backend logs for detailed traceback (returned in API response)
+4. Model is not LFS pointer: Check if `model_loader.py` is downloading from GitHub
+5. Feature count matches: Model expects exactly 30 features for stock/crypto models
+6. Check backend logs for detailed traceback (returned in API response)
+
+### Working with Git LFS Models
+
+Model files are stored in Git LFS (Large File Storage):
+
+**If you clone the repo and models don't work:**
+1. Check if model is LFS pointer: `head -n 3 backend/models/spy_model.pkl`
+   - If you see `version https://git-lfs.github.com`, it's a pointer
+2. Install Git LFS: `git lfs install`
+3. Pull actual files: `git lfs pull`
+4. Or let `model_loader.py` auto-download from GitHub on first prediction
+
+**Deploying to Railway/Heroku:**
+- Railway automatically handles Git LFS
+- If models are pointers, `model_loader.py` downloads real files on first API call
+- Models are cached after first download
 
 ## Technology Stack
 
-- **Backend**: Flask, scikit-learn, yfinance, pandas, numpy, gunicorn, peewee (ORM), pysqlite3-binary
+- **Backend**: Flask, Flask-CORS, scikit-learn, yfinance, pandas, numpy, gunicorn
+- **Database**: SQLite with Peewee ORM (pysqlite3-binary)
+- **Authentication**: JWT (PyJWT), werkzeug password hashing
 - **Frontend**: React 19, Tailwind CSS, Recharts, Axios, Lucide React (icons)
-- **ML**: Random Forest Classifier (scikit-learn)
+- **ML**: Random Forest Classifier (scikit-learn), Gradient Boosting (crypto models)
 - **Deployment**: Railway (backend), Vercel (frontend)
+- **Storage**: Git LFS for model files (.pkl files 40MB+)
+
+## Database Schema
+
+The SQLite database (`users.db`) contains user authentication and profile data:
+
+**User Model** (`models.py:10-95`):
+- `id` - Auto-increment primary key
+- `email` - Unique user email
+- `username` - Display name
+- `password` - Hashed password (werkzeug)
+- `watchlist` - JSON array of stock symbols
+- `portfolio` - JSON array of portfolio items
+- `predictions` - JSON array of prediction history
+- `followers` - JSON array of user IDs
+- `following` - JSON array of user IDs
+- `alerts` - JSON array of price alerts
+- `created_at` - Registration timestamp
+
+Database auto-creates on first run. Located at `backend/users.db`.

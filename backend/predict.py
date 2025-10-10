@@ -5,8 +5,22 @@ import os
 from feature_engineering import calculate_technical_indicators, prepare_model_data
 from model_loader import load_model_safe
 
-def load_model():
-    """Load trained model - enhanced if available, else original"""
+def is_crypto(symbol):
+    """Check if symbol is a cryptocurrency"""
+    return symbol and '-USD' in symbol
+
+def load_model(symbol='SPY'):
+    """Load trained model - crypto-specific, enhanced, or original"""
+    # Check if crypto
+    if is_crypto(symbol):
+        crypto_model_path = f'models/{symbol.lower().replace("-", "_")}_model.pkl'
+        if os.path.exists(crypto_model_path):
+            print(f"Loading crypto-specific model for {symbol}...")
+            return load_model_safe(crypto_model_path), 'crypto'
+        else:
+            print(f"Crypto model not found for {symbol}, falling back to stock model")
+
+    # Try enhanced stock model first
     enhanced_model_path = 'models/enhanced_spy_model.pkl'
     original_model_path = 'models/spy_model.pkl'
 
@@ -31,8 +45,8 @@ def get_latest_data(symbol='SPY', period='2y'):
 def make_prediction(symbol='SPY'):
     """Make prediction for next trading day"""
 
-    # Load model
-    model_data, model_type = load_model()
+    # Load model (with symbol-specific detection)
+    model_data, model_type = load_model(symbol)
 
     # Get latest data
     df = get_latest_data(symbol)
@@ -91,8 +105,8 @@ def make_prediction(symbol='SPY'):
             print(f"Error using enhanced model, falling back to original: {e}")
             model_type = 'original'
 
-    if model_type == 'original':
-        # Original model prediction logic
+    if model_type == 'original' or model_type == 'crypto':
+        # Original/Crypto model prediction logic (same features)
         df = df.dropna()
 
         # Get latest features (must match training features)
@@ -126,7 +140,10 @@ def make_prediction(symbol='SPY'):
         prediction = model.predict(latest_features)[0]
         probabilities = model.predict_proba(latest_features)[0]
 
-        print(f"Using original model")
+        if model_type == 'crypto':
+            print(f"Using crypto-specific model for {symbol}")
+        else:
+            print(f"Using original model")
 
     # Format output
     direction = "UP" if prediction == 1 else "DOWN"
