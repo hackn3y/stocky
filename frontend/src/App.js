@@ -1,4 +1,4 @@
-// Version 2.0.1 - Fixed React error #185 with proper Suspense boundaries
+// Version 2.0.2 - Mobile search bar improvements and version indicator
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import axios from 'axios';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar } from 'recharts';
@@ -1195,9 +1195,14 @@ function App() {
       {/* Footer */}
       <footer className={`${cardBg} shadow-md mt-12`}>
         <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-          <p className={`text-center ${textSecondary} text-sm`}>
-            Built with React, Flask, and Machine Learning | Model: Enhanced Ensemble (54.51% accuracy)
-          </p>
+          <div className="flex flex-col sm:flex-row justify-center items-center gap-2 sm:gap-4">
+            <p className={`text-center ${textSecondary} text-sm`}>
+              Built with React, Flask, and Machine Learning | Model: Enhanced Ensemble (54.51% accuracy)
+            </p>
+            <span className={`text-xs ${textSecondary} opacity-75`}>
+              v2.0.2
+            </span>
+          </div>
         </div>
       </footer>
 
