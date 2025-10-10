@@ -28,14 +28,14 @@ function AuthModal({ onClose, darkMode }) {
     try {
       let result;
       if (isLogin) {
-        result = login(formData.email, formData.password);
+        result = await login(formData.email, formData.password);
       } else {
         if (!formData.username) {
           setError('Username is required');
           setLoading(false);
           return;
         }
-        result = signup(formData.email, formData.password, formData.username);
+        result = await signup(formData.email, formData.password, formData.username);
       }
 
       if (result.success) {
@@ -45,6 +45,7 @@ function AuthModal({ onClose, darkMode }) {
       }
     } catch (err) {
       setError('An error occurred. Please try again.');
+      console.error('Auth modal error:', err);
     } finally {
       setLoading(false);
     }
@@ -151,8 +152,8 @@ function AuthModal({ onClose, darkMode }) {
 
           <div className={`mt-4 p-3 bg-blue-50 dark:bg-blue-900 dark:bg-opacity-20 rounded-lg`}>
             <p className={`text-xs ${textSecondary}`}>
-              <strong>Note:</strong> This is a demo authentication system using localStorage.
-              Your data is stored locally in your browser.
+              <strong>Note:</strong> Your account is stored on our backend server.
+              Login works across all browsers and devices. Token expires in 7 days.
             </p>
           </div>
         </div>

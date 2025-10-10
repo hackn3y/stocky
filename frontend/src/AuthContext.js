@@ -1,6 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
+import axios from 'axios';
 
 const AuthContext = createContext();
+
+// API URL for backend
+const API_URL = process.env.REACT_APP_API_URL || 'https://stocky-production-16bc.up.railway.app/api';
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -12,211 +16,225 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [users, setUsers] = useState(() => {
+  const [token, setToken] = useState(() => {
     try {
-      const stored = localStorage.getItem('stocky_users');
-      return stored ? JSON.parse(stored) : [];
-    } catch (error) {
-      console.error('Failed to load users from localStorage:', error);
-      return [];
+      return localStorage.getItem('stocky_token') || null;
+    } catch {
+      return null;
     }
   });
+  const [users, setUsers] = useState([]);
 
   useEffect(() => {
-    // Check localStorage availability
-    try {
-      const testKey = '__localStorage_test__';
-      localStorage.setItem(testKey, 'test');
-      localStorage.removeItem(testKey);
-      console.log('localStorage is available');
-    } catch (e) {
-      console.error('localStorage is NOT available in this browser:', e);
-      console.error('This may be due to:');
-      console.error('1. Private/InPrivate browsing mode');
-      console.error('2. Browser storage disabled in settings');
-      console.error('3. Storage quota exceeded');
-    }
+    // If we have a token, fetch current user
+    const fetchCurrentUser = async () => {
+      if (token) {
+        try {
+          const response = await axios.get(`${API_URL}/auth/me`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
 
-    // Check if user is logged in
-    try {
-      const currentUser = localStorage.getItem('stocky_current_user');
-      if (currentUser) {
-        setUser(JSON.parse(currentUser));
-        console.log('User restored from localStorage');
+          if (response.data.success) {
+            setUser(response.data.user);
+            console.log('User restored from backend');
+          }
+        } catch (error) {
+          console.error('Failed to restore user from backend:', error);
+          // Token invalid or expired, clear it
+          localStorage.removeItem('stocky_token');
+          setToken(null);
+          setUser(null);
+        }
       }
+    };
+
+    fetchCurrentUser();
+  }, [token]);
+
+  useEffect(() => {
+    // Fetch all users for social features
+    const fetchUsers = async () => {
+      try {
+        const response = await axios.get(`${API_URL}/auth/users`);
+        if (response.data.success) {
+          setUsers(response.data.users);
+        }
+      } catch (error) {
+        console.error('Failed to fetch users:', error);
+      }
+    };
+
+    fetchUsers();
+  }, []);
+
+  const signup = useCallback(async (email, password, username) => {
+    try {
+      console.log('Signup attempt:', { email, username });
+
+      const response = await axios.post(`${API_URL}/auth/register`, {
+        email,
+        password,
+        username
+      });
+
+      if (response.data.success) {
+        const { token: newToken, user: newUser } = response.data;
+
+        // Save token to localStorage
+        localStorage.setItem('stocky_token', newToken);
+        setToken(newToken);
+        setUser(newUser);
+
+        // Refresh users list
+        const usersResponse = await axios.get(`${API_URL}/auth/users`);
+        if (usersResponse.data.success) {
+          setUsers(usersResponse.data.users);
+        }
+
+        console.log('Signup successful');
+        return { success: true, user: newUser };
+      }
+
+      return { success: false, error: response.data.error || 'Signup failed' };
     } catch (error) {
-      console.error('Failed to restore user from localStorage:', error);
-      localStorage.removeItem('stocky_current_user');
+      console.error('Signup error:', error);
+      const errorMsg = error.response?.data?.error || error.message || 'Signup failed';
+      return { success: false, error: errorMsg };
     }
   }, []);
 
-  useEffect(() => {
-    // Save users to localStorage
+  const login = useCallback(async (email, password) => {
     try {
-      localStorage.setItem('stocky_users', JSON.stringify(users));
-    } catch (error) {
-      console.error('Failed to save users:', error);
-    }
-  }, [users]);
+      console.log('Login attempt:', { email });
 
-  const signup = useCallback((email, password, username) => {
-    // Check if user exists
-    const existingUser = users.find(u => u.email === email);
-    if (existingUser) {
-      return { success: false, error: 'User already exists' };
-    }
+      const response = await axios.post(`${API_URL}/auth/login`, {
+        email,
+        password
+      });
 
-    // Create new user
-    const newUser = {
-      id: Date.now().toString(),
-      email,
-      username,
-      password, // In production, this should be hashed
-      createdAt: new Date().toISOString(),
-      watchlist: [],
-      portfolio: [],
-      predictions: [],
-      followers: [],
-      following: [],
-      alerts: []
-    };
+      if (response.data.success) {
+        const { token: newToken, user: newUser } = response.data;
 
-    // Batch state updates together
-    const userWithoutPassword = { ...newUser };
-    delete userWithoutPassword.password;
+        // Save token to localStorage
+        localStorage.setItem('stocky_token', newToken);
+        setToken(newToken);
+        setUser(newUser);
 
-    // Update both state values in immediate succession for batching
-    setUsers(prevUsers => [...prevUsers, newUser]);
-    setUser(userWithoutPassword);
-
-    localStorage.setItem('stocky_current_user', JSON.stringify(userWithoutPassword));
-
-    return { success: true, user: userWithoutPassword };
-  }, [users]);
-
-  const login = useCallback((email, password) => {
-    try {
-      console.log('Login attempt:', { email, usersCount: users.length });
-
-      const foundUser = users.find(u => u.email === email && u.password === password);
-
-      if (!foundUser) {
-        console.log('Login failed: User not found or password incorrect');
-        return { success: false, error: 'Invalid email or password' };
+        console.log('Login successful');
+        return { success: true, user: newUser };
       }
 
-      const userWithoutPassword = { ...foundUser };
-      delete userWithoutPassword.password;
-
-      setUser(userWithoutPassword);
-
-      // Test localStorage availability
-      try {
-        localStorage.setItem('stocky_current_user', JSON.stringify(userWithoutPassword));
-        console.log('Login successful, user saved to localStorage');
-      } catch (storageError) {
-        console.error('localStorage error in Edge:', storageError);
-        // Still set user in state even if localStorage fails
-        return { success: false, error: 'Storage not available. Try enabling cookies/storage in browser settings.' };
-      }
-
-      return { success: true, user: userWithoutPassword };
+      return { success: false, error: response.data.error || 'Login failed' };
     } catch (error) {
       console.error('Login error:', error);
-      return { success: false, error: 'Login failed: ' + error.message };
+      const errorMsg = error.response?.data?.error || error.message || 'Login failed';
+      return { success: false, error: errorMsg };
     }
-  }, [users]);
+  }, []);
 
   const logout = useCallback(() => {
     setUser(null);
-    localStorage.removeItem('stocky_current_user');
+    setToken(null);
+    localStorage.removeItem('stocky_token');
+    console.log('User logged out');
   }, []);
 
-  const updateUser = useCallback((updates) => {
-    setUser(prevUser => {
-      const updatedUser = { ...prevUser, ...updates };
-      localStorage.setItem('stocky_current_user', JSON.stringify(updatedUser));
-
-      // Update in users array
-      setUsers(prevUsers => prevUsers.map(u =>
-        u.id === prevUser.id ? { ...u, ...updates } : u
-      ));
-
-      return updatedUser;
-    });
-  }, []);
-
-  const followUser = useCallback((targetUserId) => {
-    if (!user) return { success: false, error: 'Not logged in' };
-
-    const following = user.following || [];
-    if (following.includes(targetUserId)) {
-      return { success: false, error: 'Already following' };
+  const updateUser = useCallback(async (updates) => {
+    if (!token) {
+      console.error('No token available for update');
+      return;
     }
 
-    const currentUserId = user.id;
-    const newFollowing = [...following, targetUserId];
-    updateUser({ following: newFollowing });
+    try {
+      const response = await axios.put(`${API_URL}/auth/update`, updates, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
 
-    // Update target user's followers
-    setUsers(prevUsers => prevUsers.map(u => {
-      if (u.id === targetUserId) {
-        const followers = u.followers || [];
-        return { ...u, followers: [...followers, currentUserId] };
+      if (response.data.success) {
+        setUser(response.data.user);
+        console.log('User updated successfully');
       }
-      return u;
-    }));
+    } catch (error) {
+      console.error('Failed to update user:', error);
+    }
+  }, [token]);
 
-    return { success: true };
-  }, [user, updateUser]);
+  const followUser = useCallback(async (targetUserId) => {
+    if (!user || !token) return { success: false, error: 'Not logged in' };
 
-  const unfollowUser = useCallback((targetUserId) => {
-    if (!user) return { success: false, error: 'Not logged in' };
+    try {
+      const response = await axios.post(`${API_URL}/auth/follow/${targetUserId}`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
 
-    const currentUserId = user.id;
-    const following = user.following || [];
-    const newFollowing = following.filter(id => id !== targetUserId);
-    updateUser({ following: newFollowing });
+      if (response.data.success) {
+        // Refresh current user and users list
+        const meResponse = await axios.get(`${API_URL}/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (meResponse.data.success) {
+          setUser(meResponse.data.user);
+        }
 
-    // Update target user's followers
-    setUsers(prevUsers => prevUsers.map(u => {
-      if (u.id === targetUserId) {
-        const followers = u.followers || [];
-        return { ...u, followers: followers.filter(id => id !== currentUserId) };
+        const usersResponse = await axios.get(`${API_URL}/auth/users`);
+        if (usersResponse.data.success) {
+          setUsers(usersResponse.data.users);
+        }
+
+        return { success: true };
       }
-      return u;
-    }));
 
-    return { success: true };
-  }, [user, updateUser]);
+      return { success: false, error: response.data.error };
+    } catch (error) {
+      console.error('Follow error:', error);
+      return { success: false, error: error.response?.data?.error || 'Follow failed' };
+    }
+  }, [user, token]);
+
+  const unfollowUser = useCallback(async (targetUserId) => {
+    if (!user || !token) return { success: false, error: 'Not logged in' };
+
+    try {
+      const response = await axios.post(`${API_URL}/auth/unfollow/${targetUserId}`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (response.data.success) {
+        // Refresh current user and users list
+        const meResponse = await axios.get(`${API_URL}/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (meResponse.data.success) {
+          setUser(meResponse.data.user);
+        }
+
+        const usersResponse = await axios.get(`${API_URL}/auth/users`);
+        if (usersResponse.data.success) {
+          setUsers(usersResponse.data.users);
+        }
+
+        return { success: true };
+      }
+
+      return { success: false, error: response.data.error };
+    } catch (error) {
+      console.error('Unfollow error:', error);
+      return { success: false, error: error.response?.data?.error || 'Unfollow failed' };
+    }
+  }, [user, token]);
 
   const getPublicUsers = useCallback(() => {
-    // Return users without passwords
-    return users.map(u => ({
-      id: u.id,
-      username: u.username,
-      email: u.email,
-      createdAt: u.createdAt,
-      followers: u.followers || [],
-      following: u.following || []
-    }));
+    return users;
   }, [users]);
 
   const getUserById = useCallback((userId) => {
-    const foundUser = users.find(u => u.id === userId);
-    if (!foundUser) return null;
-
-    const publicUser = { ...foundUser };
-    delete publicUser.password;
-    return publicUser;
+    return users.find(u => u.id === userId) || null;
   }, [users]);
-
-  // Memoize public users to prevent infinite re-renders
-  const publicUsers = useMemo(() => getPublicUsers(), [getPublicUsers]);
 
   const value = useMemo(() => ({
     user,
     isAuthenticated: !!user,
+    token,
     signup,
     login,
     logout,
@@ -225,8 +243,8 @@ export const AuthProvider = ({ children }) => {
     unfollowUser,
     getPublicUsers,
     getUserById,
-    users: publicUsers
-  }), [user, publicUsers, signup, login, logout, updateUser, followUser, unfollowUser, getPublicUsers, getUserById]);
+    users
+  }), [user, token, users, signup, login, logout, updateUser, followUser, unfollowUser, getPublicUsers, getUserById]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
