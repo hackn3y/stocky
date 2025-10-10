@@ -146,6 +146,7 @@ function App() {
 
   // Refs
   const searchInputRef = useRef(null);
+  const historicalDataCache = useRef({}); // Cache for historical data: { 'SPY-3mo': [...data], 'AAPL-1y': [...data] }
 
   // Fetch prediction with retry and toast
   const getPrediction = async (ticker = symbol) => {
@@ -205,9 +206,18 @@ function App() {
     }
   };
 
-  // Fetch historical data with timeframe support
+  // Fetch historical data with timeframe support and caching
   const getHistoricalData = async (ticker = symbol, period = timeframe) => {
     try {
+      // Create cache key
+      const cacheKey = `${ticker}-${period}`;
+
+      // Check cache first - instant load for cached data
+      if (historicalDataCache.current[cacheKey]) {
+        setHistoricalData(historicalDataCache.current[cacheKey]);
+        return;
+      }
+
       // Map timeframes to Yahoo Finance period and interval formats
       const timeframeConfig = {
         '1d': { period: '1d', interval: '5m' },     // 1 day: 5-minute intervals
@@ -229,7 +239,13 @@ function App() {
           volume: data.volume[index]
         }));
         // Apply data reduction for better chart performance
-        setHistoricalData(reduceDataPoints(formattedData));
+        const processedData = reduceDataPoints(formattedData);
+
+        // Store in cache
+        historicalDataCache.current[cacheKey] = processedData;
+
+        // Update state
+        setHistoricalData(processedData);
       }
     } catch (err) {
       console.error('Historical data error:', err);
