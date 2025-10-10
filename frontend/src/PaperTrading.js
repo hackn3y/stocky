@@ -1,11 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { DollarSign, TrendingUp, TrendingDown, ShoppingCart, X, AlertCircle, Trophy, BarChart2 } from 'lucide-react';
+import axios from 'axios';
+import { DollarSign, TrendingUp, TrendingDown, ShoppingCart, X, AlertCircle, Trophy, BarChart2, Search } from 'lucide-react';
 import { useAuth } from './AuthContext';
+
+// API URL
+const API_URL = process.env.REACT_APP_API_URL || 'https://stocky-production-16bc.up.railway.app/api';
 
 function PaperTrading({ darkMode, currentSymbol, currentPrice, prediction }) {
   const { user, updateUser, isAuthenticated } = useAuth();
 
   // State
+  const [selectedSymbol, setSelectedSymbol] = useState(currentSymbol || '');
+  const [selectedPrice, setSelectedPrice] = useState(currentPrice || 0);
+  const [selectedPrediction, setSelectedPrediction] = useState(prediction || null);
+  const [loadingPrice, setLoadingPrice] = useState(false);
+  const [priceError, setPriceError] = useState('');
+
   const [balance, setBalance] = useState(() => {
     if (isAuthenticated && user?.paperTrading) {
       return user.paperTrading.balance;
@@ -43,6 +53,51 @@ function PaperTrading({ darkMode, currentSymbol, currentPrice, prediction }) {
 
   // Commission fee
   const COMMISSION = 1.00;
+
+  // Update when props change
+  useEffect(() => {
+    if (currentSymbol) setSelectedSymbol(currentSymbol);
+    if (currentPrice) setSelectedPrice(currentPrice);
+    if (prediction) setSelectedPrediction(prediction);
+  }, [currentSymbol, currentPrice, prediction]);
+
+  // Fetch prediction for a symbol
+  const fetchPrediction = async (symbol) => {
+    if (!symbol || symbol.trim() === '') return;
+
+    setLoadingPrice(true);
+    setPriceError('');
+
+    try {
+      const response = await axios.get(`${API_URL}/predict/${symbol.toUpperCase()}`);
+
+      if (response.data.success) {
+        setSelectedPrice(response.data.current_price);
+        setSelectedPrediction({
+          prediction: response.data.prediction,
+          confidence: response.data.confidence
+        });
+      } else {
+        setPriceError(response.data.error || 'Failed to fetch price');
+      }
+    } catch (error) {
+      console.error('Price fetch error:', error);
+      setPriceError(error.response?.data?.error || 'Failed to fetch price');
+    } finally {
+      setLoadingPrice(false);
+    }
+  };
+
+  // Handle symbol change
+  const handleSymbolChange = (e) => {
+    setSelectedSymbol(e.target.value.toUpperCase());
+  };
+
+  // Handle symbol submit
+  const handleSymbolSubmit = (e) => {
+    e.preventDefault();
+    fetchPrediction(selectedSymbol);
+  };
 
   // Save to storage
   useEffect(() => {
@@ -89,12 +144,12 @@ function PaperTrading({ darkMode, currentSymbol, currentPrice, prediction }) {
       return;
     }
 
-    if (!currentPrice) {
+    if (!selectedPrice) {
       setError('Current price not available');
       return;
     }
 
-    const totalCost = (currentPrice * shares) + COMMISSION;
+    const totalCost = (selectedPrice * shares) + COMMISSION;
 
     if (totalCost > balance) {
       setError(`Insufficient funds. Need $${totalCost.toFixed(2)}, have $${balance.toFixed(2)}`);
@@ -102,42 +157,42 @@ function PaperTrading({ darkMode, currentSymbol, currentPrice, prediction }) {
     }
 
     // Check if we already have this position
-    const existingPosition = positions.find(p => p.symbol === currentSymbol);
+    const existingPosition = positions.find(p => p.symbol === selectedSymbol);
 
     if (existingPosition) {
       // Add to existing position (average up)
       const totalShares = existingPosition.shares + shares;
-      const totalCost = (existingPosition.buyPrice * existingPosition.shares) + (currentPrice * shares);
+      const totalCost = (existingPosition.buyPrice * existingPosition.shares) + (selectedPrice * shares);
       const avgPrice = totalCost / totalShares;
 
       setPositions(positions.map(p =>
-        p.symbol === currentSymbol
+        p.symbol === selectedSymbol
           ? { ...p, shares: totalShares, buyPrice: avgPrice, commission: p.commission + COMMISSION }
           : p
       ));
     } else {
       // Create new position
       setPositions([...positions, {
-        symbol: currentSymbol,
+        symbol: selectedSymbol,
         shares: shares,
-        buyPrice: currentPrice,
-        currentPrice: currentPrice,
+        buyPrice: selectedPrice,
+        currentPrice: selectedPrice,
         commission: COMMISSION,
         openDate: new Date().toISOString(),
-        prediction: prediction?.prediction || 'N/A'
+        prediction: selectedPrediction?.prediction || 'N/A'
       }]);
     }
 
     // Record trade
     setTrades([{
       type: 'BUY',
-      symbol: currentSymbol,
+      symbol: selectedSymbol,
       shares: shares,
-      price: currentPrice,
+      price: selectedPrice,
       commission: COMMISSION,
       total: totalCost,
       date: new Date().toISOString(),
-      prediction: prediction?.prediction || 'N/A'
+      prediction: selectedPrediction?.prediction || 'N/A'
     }, ...trades]);
 
     // Update balance
@@ -260,17 +315,45 @@ function PaperTrading({ darkMode, currentSymbol, currentPrice, prediction }) {
         </div>
       </div>
 
-      {/* Quick Trade Button */}
-      {currentSymbol && currentPrice && (
-        <div className={`mb-6 p-4 border-2 ${borderColor} rounded-lg`}>
+      {/* Stock Selector & Quick Trade */}
+      <div className={`mb-6 p-4 border-2 ${borderColor} rounded-lg`}>
+        <form onSubmit={handleSymbolSubmit} className="mb-3">
+          <div className="flex gap-2">
+            <div className="flex-1 relative">
+              <input
+                type="text"
+                value={selectedSymbol}
+                onChange={handleSymbolChange}
+                placeholder="Enter symbol (e.g., AAPL, TSLA)"
+                className={`w-full px-4 py-2 pl-10 border ${borderColor} rounded-lg ${darkMode ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'} focus:outline-none focus:border-indigo-500`}
+              />
+              <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 ${textSecondary}`} />
+            </div>
+            <button
+              type="submit"
+              disabled={loadingPrice || !selectedSymbol}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            >
+              {loadingPrice ? 'Loading...' : 'Get Price'}
+            </button>
+          </div>
+        </form>
+
+        {priceError && (
+          <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+            {priceError}
+          </div>
+        )}
+
+        {selectedSymbol && selectedPrice > 0 && (
           <div className="flex items-center justify-between">
             <div>
-              <p className={`font-semibold ${textPrimary}`}>{currentSymbol} - ${currentPrice.toFixed(2)}</p>
-              {prediction && (
+              <p className={`font-semibold ${textPrimary}`}>{selectedSymbol} - ${selectedPrice.toFixed(2)}</p>
+              {selectedPrediction && (
                 <p className={`text-sm ${textSecondary}`}>
-                  Prediction: <span className={prediction.prediction === 'UP' ? 'text-green-600' : 'text-red-600'}>
-                    {prediction.prediction}
-                  </span> ({prediction.confidence.toFixed(1)}%)
+                  Prediction: <span className={selectedPrediction.prediction === 'UP' ? 'text-green-600' : 'text-red-600'}>
+                    {selectedPrediction.prediction}
+                  </span> ({selectedPrediction.confidence.toFixed(1)}%)
                 </p>
               )}
             </div>
@@ -282,8 +365,8 @@ function PaperTrading({ darkMode, currentSymbol, currentPrice, prediction }) {
               Buy
             </button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Positions */}
       {positions.length > 0 && (
@@ -377,7 +460,7 @@ function PaperTrading({ darkMode, currentSymbol, currentPrice, prediction }) {
           <div className={`${cardBg} rounded-lg shadow-xl max-w-md w-full p-6`}>
             <div className="flex justify-between items-center mb-4">
               <h3 className={`text-xl font-bold ${textPrimary}`}>
-                {tradeType === 'buy' ? 'Buy' : 'Sell'} {tradeType === 'buy' ? currentSymbol : window.currentSellPosition?.symbol}
+                {tradeType === 'buy' ? 'Buy' : 'Sell'} {tradeType === 'buy' ? selectedSymbol : window.currentSellPosition?.symbol}
               </h3>
               <button
                 onClick={() => { setShowTradeModal(false); setError(''); }}
@@ -440,11 +523,11 @@ function PaperTrading({ darkMode, currentSymbol, currentPrice, prediction }) {
                   >
                     100
                   </button>
-                  {tradeType === 'buy' && currentPrice && (
+                  {tradeType === 'buy' && selectedPrice && (
                     <button
                       type="button"
                       onClick={() => {
-                        const maxShares = Math.floor((balance - COMMISSION) / currentPrice);
+                        const maxShares = Math.floor((balance - COMMISSION) / selectedPrice);
                         setTradeShares(maxShares.toString());
                       }}
                       className={`px-3 py-1 text-xs border ${borderColor} rounded ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} ${textPrimary}`}
@@ -464,10 +547,10 @@ function PaperTrading({ darkMode, currentSymbol, currentPrice, prediction }) {
                 </div>
               </div>
 
-              {tradeType === 'buy' && currentPrice && tradeShares && (
+              {tradeType === 'buy' && selectedPrice && tradeShares && (
                 <div className={`p-3 ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} rounded-lg text-sm ${textPrimary}`}>
-                  <p>Price per share: ${currentPrice.toFixed(2)}</p>
-                  <p>Total cost: ${((currentPrice * parseInt(tradeShares || 0)) + COMMISSION).toFixed(2)}</p>
+                  <p>Price per share: ${selectedPrice.toFixed(2)}</p>
+                  <p>Total cost: ${((selectedPrice * parseInt(tradeShares || 0)) + COMMISSION).toFixed(2)}</p>
                   <p className="text-xs text-gray-500">Includes ${COMMISSION.toFixed(2)} commission</p>
                 </div>
               )}

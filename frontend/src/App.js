@@ -1,4 +1,4 @@
-// Version 2.2.1 - Improve paper trading UX with quick-select share buttons
+// Version 2.2.2 - Add stock symbol selector to paper trading section
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import axios from 'axios';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar } from 'recharts';
@@ -1205,7 +1205,7 @@ function App() {
               Built with React, Flask, and Machine Learning | Model: Enhanced Ensemble (54.51% accuracy)
             </p>
             <span className={`text-xs ${textSecondary} opacity-75`}>
-              v2.2.1
+              v2.2.2
             </span>
           </div>
         </div>
