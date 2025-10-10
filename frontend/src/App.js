@@ -52,6 +52,19 @@ const getAssetBadge = (symbol) => {
   return null;
 };
 
+// Utility function to get timeframe display name
+const getTimeframeLabel = (period) => {
+  const labels = {
+    '1d': '1-Day',
+    '1w': '1-Week',
+    '1mo': '1-Month',
+    '3mo': '3-Month',
+    '1y': '1-Year',
+    'max': 'All Time'
+  };
+  return labels[period] || '3-Month';
+};
+
 // Utility functions for localStorage
 const getFromStorage = (key, defaultValue) => {
   try {
@@ -102,6 +115,7 @@ function App() {
   const [showDetails, setShowDetails] = useState(false);
   const [chartType, setChartType] = useState('line');
   const [shareMenu, setShareMenu] = useState(false);
+  const [timeframe, setTimeframe] = useState('3mo');
 
   // Advanced features state
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -172,10 +186,21 @@ function App() {
     }
   };
 
-  // Fetch historical data
-  const getHistoricalData = async (ticker = symbol) => {
+  // Fetch historical data with timeframe support
+  const getHistoricalData = async (ticker = symbol, period = timeframe) => {
     try {
-      const response = await axios.get(`${API_URL}/historical/${ticker}?period=3mo&interval=1d`);
+      // Map timeframes to intervals
+      const intervalMap = {
+        '1d': '5m',    // 1 day: 5-minute intervals
+        '1w': '1h',    // 1 week: 1-hour intervals
+        '1mo': '1d',   // 1 month: 1-day intervals
+        '3mo': '1d',   // 3 months: 1-day intervals
+        '1y': '1d',    // 1 year: 1-day intervals
+        'max': '1wk'   // Max: 1-week intervals
+      };
+
+      const interval = intervalMap[period] || '1d';
+      const response = await axios.get(`${API_URL}/historical/${ticker}?period=${period}&interval=${interval}`);
 
       if (response.data.success) {
         const data = response.data.data;
@@ -939,31 +964,55 @@ function App() {
           <ChartSkeleton darkMode={darkMode} />
         ) : historicalData.length > 0 ? (
           <div className={`${cardBg} rounded-lg shadow-md p-6`}>
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
               <h2 className={`text-2xl font-bold ${textPrimary}`}>
-                3-Month Price History
+                {getTimeframeLabel(timeframe)} Price History
               </h2>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setChartType('line')}
-                  className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                    chartType === 'line'
-                      ? 'bg-indigo-600 text-white'
-                      : `${darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700'} hover:bg-indigo-100`
-                  }`}
-                >
-                  Line Chart
-                </button>
-                <button
-                  onClick={() => setChartType('bar')}
-                  className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                    chartType === 'bar'
-                      ? 'bg-indigo-600 text-white'
-                      : `${darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700'} hover:bg-indigo-100`
-                  }`}
-                >
-                  Bar Chart
-                </button>
+
+              <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                {/* Timeframe Selector */}
+                <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0">
+                  {['1d', '1w', '1mo', '3mo', '1y', 'max'].map((period) => (
+                    <button
+                      key={period}
+                      onClick={() => {
+                        setTimeframe(period);
+                        getHistoricalData(symbol, period);
+                      }}
+                      className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
+                        timeframe === period
+                          ? 'bg-blue-600 text-white'
+                          : `${darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700'} hover:bg-blue-100`
+                      }`}
+                    >
+                      {getTimeframeLabel(period)}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Chart Type Selector */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setChartType('line')}
+                    className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                      chartType === 'line'
+                        ? 'bg-indigo-600 text-white'
+                        : `${darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700'} hover:bg-indigo-100`
+                    }`}
+                  >
+                    Line Chart
+                  </button>
+                  <button
+                    onClick={() => setChartType('bar')}
+                    className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                      chartType === 'bar'
+                        ? 'bg-indigo-600 text-white'
+                        : `${darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700'} hover:bg-indigo-100`
+                    }`}
+                  >
+                    Bar Chart
+                  </button>
+                </div>
               </div>
             </div>
             <ResponsiveContainer width="100%" height={400}>
