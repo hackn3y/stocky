@@ -481,7 +481,7 @@ function App() {
                 </button>
               )}
               <div className={`text-sm ${textSecondary} hidden md:block`}>
-                ML (51.88% accuracy)
+                ML (54.51% accuracy)
               </div>
             </div>
           </div>
@@ -731,16 +731,16 @@ function App() {
                   <section>
                     <h3 className="text-xl font-semibold text-indigo-600 mb-2">Model Performance</h3>
                     <ul className="list-disc list-inside space-y-1">
-                      <li><strong>Test Accuracy:</strong> 51.88% (trained on SPY)</li>
+                      <li><strong>Test Accuracy:</strong> 54.51% (trained on SPY)</li>
                       <li><strong>Training Data:</strong> ~2,708 days of historical data</li>
-                      <li><strong>Algorithm:</strong> Random Forest (300 estimators)</li>
+                      <li><strong>Algorithm:</strong> Enhanced Ensemble (XGBoost + CatBoost + Random Forest)</li>
                     </ul>
                   </section>
 
                   <section className="bg-yellow-50 border border-yellow-200 rounded p-4">
                     <h3 className="text-lg font-semibold text-yellow-800 mb-2">⚠️ Important Disclaimer</h3>
                     <p className="text-sm text-yellow-700">
-                      <strong>51.88% accuracy is only slightly better than random chance (50%).</strong> This is for educational purposes only.
+                      <strong>54.51% accuracy is only slightly better than random chance (50%).</strong> This is for educational purposes only.
                       Stock markets are extremely difficult to predict. Do NOT invest real money based on these predictions.
                       Always do your own research and consult with financial advisors.
                     </p>
@@ -1077,7 +1077,7 @@ function App() {
         <div className="mt-8 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
           <p className="text-sm text-yellow-800">
             <strong>Disclaimer:</strong> This is for educational purposes only. Not financial advice.
-            Do not risk real money based on these predictions. The model has approximately 52% accuracy,
+            Do not risk real money based on these predictions. The model has approximately 54.5% accuracy,
             which is only slightly better than random chance.
           </p>
         </div>
@@ -1087,7 +1087,7 @@ function App() {
       <footer className={`${cardBg} shadow-md mt-12`}>
         <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
           <p className={`text-center ${textSecondary} text-sm`}>
-            Built with React, Flask, and Machine Learning | Model: Random Forest (51.88% accuracy)
+            Built with React, Flask, and Machine Learning | Model: Enhanced Ensemble (54.51% accuracy)
           </p>
         </div>
       </footer>
