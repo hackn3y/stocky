@@ -5,9 +5,13 @@ import yfinance as yf
 import joblib
 from datetime import datetime, timedelta
 import traceback
+from auth import auth_bp  # Import auth blueprint
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for React frontend
+
+# Register auth blueprint
+app.register_blueprint(auth_bp, url_prefix='/api/auth')
 
 # Health check endpoint
 @app.route('/api/health', methods=['GET'])
