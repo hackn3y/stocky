@@ -1,0 +1,7 @@
+[build]
+    builder = "nixpacks"
+
+[build.nixpacksPlan.phases.setup]
+    cmds = [
+        "git lfs pull"
+    ]
