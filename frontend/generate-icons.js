@@ -16,6 +16,18 @@ try {
   process.exit(1);
 }
 
+// Check if png-to-ico is available
+let pngToIco;
+try {
+  const module = require('png-to-ico');
+  // png-to-ico exports a default function
+  pngToIco = module.default || module;
+} catch (e) {
+  console.warn('⚠️  Warning: png-to-ico module not found');
+  console.warn('📦 Install it with: npm install png-to-ico');
+  console.warn('Skipping favicon.ico generation...\n');
+}
+
 const publicDir = path.join(__dirname, 'public');
 const svgPath = path.join(publicDir, 'icon.svg');
 
@@ -91,11 +103,37 @@ async function generateIcons() {
     }
   }
 
+  // Generate favicon.ico from 48x48 PNG (if png-to-ico is available)
+  if (pngToIco) {
+    try {
+      console.log('\n🔨 Generating favicon.ico...');
+
+      // First create a temporary 48x48 PNG for the .ico file
+      const tempPngPath = path.join(publicDir, 'temp-favicon-48.png');
+      await sharp(svgBuffer)
+        .resize(48, 48)
+        .png()
+        .toFile(tempPngPath);
+
+      // Convert PNG to ICO
+      const icoBuffer = await pngToIco(tempPngPath);
+      const icoPath = path.join(publicDir, 'favicon.ico');
+      fs.writeFileSync(icoPath, icoBuffer);
+
+      // Clean up temp file
+      fs.unlinkSync(tempPngPath);
+
+      console.log('✅ Generated favicon.ico (48x48)');
+    } catch (error) {
+      console.error('❌ Failed to generate favicon.ico:', error.message);
+    }
+  }
+
   console.log('\n✨ Icon generation complete!');
-  console.log('📱 To see changes on mobile:');
-  console.log('   1. Clear browser cache');
-  console.log('   2. Remove PWA from home screen');
-  console.log('   3. Re-add to home screen');
+  console.log('📱 To see changes:');
+  console.log('   1. Clear browser cache (Ctrl+Shift+Delete)');
+  console.log('   2. For PWA: Remove from home screen and re-add');
+  console.log('   3. Hard refresh browser (Ctrl+F5)');
 }
 
 generateIcons().catch(error => {
