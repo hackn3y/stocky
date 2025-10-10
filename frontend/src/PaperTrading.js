@@ -402,11 +402,66 @@ function PaperTrading({ darkMode, currentSymbol, currentPrice, prediction }) {
                 <input
                   type="number"
                   min="1"
+                  step="1"
                   value={tradeShares}
                   onChange={(e) => setTradeShares(e.target.value)}
                   className={`w-full px-4 py-2 border ${borderColor} rounded-lg ${darkMode ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'}`}
-                  placeholder="Enter number of shares"
+                  placeholder="Enter number of shares (e.g., 10, 50, 100)"
+                  autoFocus
                 />
+
+                {/* Quick select buttons */}
+                <div className="flex gap-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setTradeShares('1')}
+                    className={`px-3 py-1 text-xs border ${borderColor} rounded ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} ${textPrimary}`}
+                  >
+                    1
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTradeShares('10')}
+                    className={`px-3 py-1 text-xs border ${borderColor} rounded ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} ${textPrimary}`}
+                  >
+                    10
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTradeShares('50')}
+                    className={`px-3 py-1 text-xs border ${borderColor} rounded ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} ${textPrimary}`}
+                  >
+                    50
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTradeShares('100')}
+                    className={`px-3 py-1 text-xs border ${borderColor} rounded ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} ${textPrimary}`}
+                  >
+                    100
+                  </button>
+                  {tradeType === 'buy' && currentPrice && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const maxShares = Math.floor((balance - COMMISSION) / currentPrice);
+                        setTradeShares(maxShares.toString());
+                      }}
+                      className={`px-3 py-1 text-xs border ${borderColor} rounded ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} ${textPrimary}`}
+                    >
+                      Max
+                    </button>
+                  )}
+                  {tradeType === 'sell' && window.currentSellPosition && (
+                    <button
+                      type="button"
+                      onClick={() => setTradeShares(window.currentSellPosition.shares.toString())}
+                      className={`px-3 py-1 text-xs border ${borderColor} rounded ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} ${textPrimary}`}
+                    >
+                      All ({window.currentSellPosition.shares})
+                    </button>
+                  )}
+                </div>
               </div>
 
               {tradeType === 'buy' && currentPrice && tradeShares && (
