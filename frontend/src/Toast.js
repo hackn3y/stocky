@@ -20,10 +20,10 @@ function Toast({ message, type = 'info', onClose, duration = 5000 }) {
   };
 
   const colors = {
-    success: 'bg-green-50 border-green-500 text-green-800 dark:bg-green-900 dark:bg-opacity-20 dark:border-green-700 dark:text-green-300',
-    error: 'bg-red-50 border-red-500 text-red-800 dark:bg-red-900 dark:bg-opacity-20 dark:border-red-700 dark:text-red-300',
-    warning: 'bg-yellow-50 border-yellow-500 text-yellow-800 dark:bg-yellow-900 dark:bg-opacity-20 dark:border-yellow-700 dark:text-yellow-300',
-    info: 'bg-blue-50 border-blue-500 text-blue-800 dark:bg-blue-900 dark:bg-opacity-20 dark:border-blue-700 dark:text-blue-300'
+    success: 'bg-green-50 border-green-500 text-green-800 dark:bg-green-900 dark:bg-opacity-95 dark:border-green-700 dark:text-green-300',
+    error: 'bg-red-50 border-red-500 text-red-800 dark:bg-red-900 dark:bg-opacity-95 dark:border-red-700 dark:text-red-300',
+    warning: 'bg-yellow-50 border-yellow-500 text-yellow-800 dark:bg-yellow-900 dark:bg-opacity-95 dark:border-yellow-700 dark:text-yellow-300',
+    info: 'bg-blue-50 border-blue-500 text-blue-800 dark:bg-blue-900 dark:bg-opacity-95 dark:border-blue-700 dark:text-blue-300'
   };
 
   const iconColors = {

@@ -38,7 +38,7 @@ function MobileNav({ darkMode, onNavigate }) {
       {/* Hamburger Button - Only visible on mobile */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="md:hidden fixed bottom-6 right-6 z-50 p-4 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 transition-all"
+        className="md:hidden fixed bottom-20 right-4 z-50 p-3 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 transition-all"
         aria-label="Toggle menu"
       >
         {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -115,8 +115,8 @@ function MobileNav({ darkMode, onNavigate }) {
       </div>
 
       {/* Bottom Navigation Bar - Mobile Only */}
-      <div className={`md:hidden fixed bottom-0 left-0 right-0 ${cardBg} border-t border-gray-200 dark:border-gray-700 z-30`}>
-        <div className="flex items-center justify-around py-2">
+      <div className={`md:hidden fixed bottom-0 left-0 right-0 ${cardBg} border-t border-gray-200 dark:border-gray-700 z-30 pb-safe`}>
+        <div className="flex items-center justify-around py-3">
           {[
             { icon: Home, id: 'dashboard' },
             { icon: TrendingUp, id: 'technical' },
