@@ -1,4 +1,4 @@
-// Version 2.0.3 - Responsive mobile search layout with full-width input
+// Version 2.0.4 - Fixed Android maskable icons with proper safe zone
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import axios from 'axios';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar } from 'recharts';
@@ -1205,7 +1205,7 @@ function App() {
               Built with React, Flask, and Machine Learning | Model: Enhanced Ensemble (54.51% accuracy)
             </p>
             <span className={`text-xs ${textSecondary} opacity-75`}>
-              v2.0.3
+              v2.0.4
             </span>
           </div>
         </div>

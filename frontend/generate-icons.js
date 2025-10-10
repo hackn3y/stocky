@@ -47,8 +47,9 @@ async function generateIcons() {
       const outputPath = path.join(publicDir, name);
 
       if (maskable) {
-        // For maskable icons, add 20% padding (safe zone) and create larger canvas
-        const iconSize = Math.round(size * 0.6); // Icon takes 60% of canvas
+        // For maskable icons, use more aggressive padding (icon is only 50% of canvas)
+        // This ensures content stays well within the safe zone
+        const iconSize = Math.round(size * 0.5); // Icon takes 50% of canvas (was 60%)
         const padding = Math.round((size - iconSize) / 2);
 
         // Create the icon at reduced size
@@ -57,13 +58,14 @@ async function generateIcons() {
           .png()
           .toBuffer();
 
-        // Place it on a larger canvas with padding (using theme color background)
+        // Create gradient background matching the SVG
+        // Using solid color that matches the gradient midpoint
         await sharp({
           create: {
             width: size,
             height: size,
             channels: 4,
-            background: { r: 79, g: 70, b: 229, alpha: 1 } // #4F46E5
+            background: { r: 99, g: 102, b: 241, alpha: 1 } // #6366F1 (indigo-500)
           }
         })
         .composite([{
@@ -74,7 +76,7 @@ async function generateIcons() {
         .png()
         .toFile(outputPath);
 
-        console.log(`✅ Generated ${name} (${size}x${size} maskable with safe zone)`);
+        console.log(`✅ Generated ${name} (${size}x${size} maskable with 50% content, 50% safe zone)`);
       } else {
         // Regular icons - no padding needed
         await sharp(svgBuffer)

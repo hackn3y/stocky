@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stocky - Icon Preview Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            color: #4F46E5;
+        }
+        .icon-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .icon-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .icon-card h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .mask-preview {
+            width: 192px;
+            height: 192px;
+            margin: 10px auto;
+            position: relative;
+            background: #f0f0f0;
+        }
+        .mask-preview img {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .mask-circle {
+            clip-path: circle(50%);
+        }
+        .mask-squircle {
+            clip-path: url(#squircle);
+        }
+        .mask-rounded-square {
+            clip-path: inset(0 round 20%);
+        }
+        .info {
+            background: #e0e7ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .safe-zone {
+            position: absolute;
+            top: 10%;
+            left: 10%;
+            right: 10%;
+            bottom: 10%;
+            border: 2px dashed #4F46E5;
+            pointer-events: none;
+        }
+        .warning {
+            background: #fef3c7;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #f59e0b;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>📱 Stocky PWA Icon Preview</h1>
+
+    <div class="info">
+        <strong>ℹ️ Testing Instructions:</strong>
+        <ol>
+            <li>This page shows how your icons will look on Android with different mask shapes</li>
+            <li>The dashed blue box shows the "safe zone" - content should stay inside</li>
+            <li>Maskable icons should have padding so text doesn't get cut off</li>
+            <li><strong>To test on mobile:</strong> Upload these files to Vercel and visit the deployed site</li>
+        </ol>
+    </div>
+
+    <h2>Regular Icons (purpose: "any")</h2>
+    <p>These are used in browsers and iOS:</p>
+    <div class="icon-grid">
+        <div class="icon-card">
+            <h3>icon-192.png</h3>
+            <div class="mask-preview">
+                <img src="icon-192.png" alt="Regular 192x192">
+            </div>
+            <p>✅ Full size, no padding</p>
+        </div>
+        <div class="icon-card">
+            <h3>icon-512.png</h3>
+            <div class="mask-preview">
+                <img src="icon-512.png" alt="Regular 512x512">
+            </div>
+            <p>✅ Full size, no padding</p>
+        </div>
+    </div>
+
+    <h2>Maskable Icons (purpose: "maskable")</h2>
+    <p>These are used on Android with adaptive icons:</p>
+
+    <div class="warning">
+        <strong>⚠️ Important:</strong> Maskable icons must have 20% safe zone padding on all sides.
+        The "Stocky" text and logo should stay within the dashed blue box to avoid being cut off.
+    </div>
+
+    <h3>Circle Mask (Most Android devices)</h3>
+    <div class="icon-grid">
+        <div class="icon-card">
+            <h3>web-app-manifest-192x192.png</h3>
+            <div class="mask-preview">
+                <div style="position: relative;">
+                    <img src="web-app-manifest-192x192.png" class="mask-circle" alt="Maskable 192 Circle">
+                    <div class="safe-zone"></div>
+                </div>
+            </div>
+            <p>🔵 Circular mask applied</p>
+        </div>
+        <div class="icon-card">
+            <h3>web-app-manifest-512x512.png</h3>
+            <div class="mask-preview">
+                <div style="position: relative;">
+                    <img src="web-app-manifest-512x512.png" class="mask-circle" alt="Maskable 512 Circle">
+                    <div class="safe-zone"></div>
+                </div>
+            </div>
+            <p>🔵 Circular mask applied</p>
+        </div>
+    </div>
+
+    <h3>Rounded Square (Some Android devices)</h3>
+    <div class="icon-grid">
+        <div class="icon-card">
+            <h3>web-app-manifest-192x192.png</h3>
+            <div class="mask-preview">
+                <div style="position: relative;">
+                    <img src="web-app-manifest-192x192.png" class="mask-rounded-square" alt="Maskable 192 Rounded">
+                    <div class="safe-zone"></div>
+                </div>
+            </div>
+            <p>⬜ Rounded square mask</p>
+        </div>
+        <div class="icon-card">
+            <h3>web-app-manifest-512x512.png</h3>
+            <div class="mask-preview">
+                <div style="position: relative;">
+                    <img src="web-app-manifest-512x512.png" class="mask-rounded-square" alt="Maskable 512 Rounded">
+                    <div class="safe-zone"></div>
+                </div>
+            </div>
+            <p>⬜ Rounded square mask</p>
+        </div>
+    </div>
+
+    <h2>🌐 Online Testing Tools</h2>
+    <div class="info">
+        <p><strong>1. Maskable.app Editor (Best!):</strong></p>
+        <p><a href="https://maskable.app/editor" target="_blank">https://maskable.app/editor</a></p>
+        <p>Upload your icon and see it with all Android mask shapes!</p>
+
+        <p><strong>2. Chrome DevTools:</strong></p>
+        <ol>
+            <li>Visit your deployed site: <code>https://stocky-mu.vercel.app/</code></li>
+            <li>Open DevTools (F12)</li>
+            <li>Go to "Application" tab</li>
+            <li>Click "Manifest" in sidebar</li>
+            <li>Scroll down to see all icons with preview</li>
+        </ol>
+    </div>
+
+    <h2>✅ What to Check</h2>
+    <div class="icon-card">
+        <ul>
+            <li>✅ Can you see "Stocky" text clearly in all masks?</li>
+            <li>✅ Is the chart icon visible and not cut off?</li>
+            <li>✅ Does the text stay within the dashed blue safe zone?</li>
+            <li>✅ Is the background color #4F46E5 (indigo)?</li>
+        </ul>
+        <p><strong>If YES to all:</strong> Icons are correct! ✨</p>
+        <p><strong>If NO to any:</strong> The maskable icons need more padding.</p>
+    </div>
+
+    <svg width="0" height="0">
+        <defs>
+            <clipPath id="squircle" clipPathUnits="objectBoundingBox">
+                <path d="M 0,0.5 C 0,0 0,0 0.5,0 S 1,0 1,0.5 1,1 0.5,1 0,1 0,0.5"/>
+            </clipPath>
+        </defs>
+    </svg>
+</body>
+</html>
