@@ -1,16 +1,26 @@
 """
 Database models for Stock Predictor
-Uses Peewee ORM with SQLite
+Uses Peewee ORM with SQLite (local) or PostgreSQL (production)
 """
 from peewee import *
+from playhouse.db_url import connect
 from datetime import datetime
 import json
 import os
 
 # Database configuration
-# Use environment variable for database path (Railway deployment)
-DB_PATH = os.environ.get('DATABASE_PATH', 'stocky.db')
-db = SqliteDatabase(DB_PATH)
+# Priority: DATABASE_URL (PostgreSQL) > DATABASE_PATH (SQLite) > default SQLite
+DATABASE_URL = os.environ.get('DATABASE_URL')
+DATABASE_PATH = os.environ.get('DATABASE_PATH', 'stocky.db')
+
+if DATABASE_URL:
+    # Production: Use PostgreSQL from Railway
+    db = connect(DATABASE_URL)
+    print(f"[OK] Using PostgreSQL database")
+else:
+    # Local: Use SQLite
+    db = SqliteDatabase(DATABASE_PATH)
+    print(f"[OK] Using SQLite database: {DATABASE_PATH}")
 
 
 class BaseModel(Model):
@@ -126,7 +136,8 @@ def initialize_database():
     try:
         db.connect()
         db.create_tables([User, Alert, Post], safe=True)
-        print(f"[OK] Database initialized: {DB_PATH}")
+        db_name = DATABASE_URL if DATABASE_URL else DATABASE_PATH
+        print(f"[OK] Database initialized: {db_name}")
         print(f"[OK] Tables created: User, Alert, Post")
         return True
     except Exception as e:
