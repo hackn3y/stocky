@@ -1,4 +1,4 @@
-// Version 2.0.7 - Fix Edge/Windows PWA icon by separating maskable and regular icons
+// Version 2.0.8 - Remove service worker registration to prevent errors
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import axios from 'axios';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar } from 'recharts';
@@ -1205,7 +1205,7 @@ function App() {
               Built with React, Flask, and Machine Learning | Model: Enhanced Ensemble (54.51% accuracy)
             </p>
             <span className={`text-xs ${textSecondary} opacity-75`}>
-              v2.0.7
+              v2.0.8
             </span>
           </div>
         </div>

@@ -16,13 +16,14 @@ root.render(
   </React.StrictMode>
 );
 
-// Register service worker to clear old caches
+// Unregister any existing service workers and clear caches
+// No need to register a new one - Vercel handles routing
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    // Unregister any existing service workers first
+    // Unregister all service workers
     navigator.serviceWorker.getRegistrations().then((registrations) => {
       registrations.forEach((registration) => {
-        console.log('Unregistering old service worker...');
+        console.log('Unregistering service worker...');
         registration.unregister();
       });
     });
@@ -31,22 +32,10 @@ if ('serviceWorker' in navigator) {
     if ('caches' in window) {
       caches.keys().then((cacheNames) => {
         cacheNames.forEach((cacheName) => {
-          console.log('Deleting cache:', cacheName);
+          console.log('Clearing cache:', cacheName);
           caches.delete(cacheName);
         });
       });
     }
-
-    // Register the new cache-clearing service worker
-    navigator.serviceWorker
-      .register('/service-worker.js')
-      .then((registration) => {
-        console.log('Cache-clearing SW registered:', registration);
-        // Force update
-        registration.update();
-      })
-      .catch((error) => {
-        console.log('SW registration failed:', error);
-      });
   });
 }
