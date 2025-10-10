@@ -64,12 +64,14 @@ export const AuthProvider = ({ children }) => {
       alerts: []
     };
 
-    setUsers([...users, newUser]);
-
-    // Auto-login after signup
+    // Batch state updates together
     const userWithoutPassword = { ...newUser };
     delete userWithoutPassword.password;
+
+    // Update both state values in immediate succession for batching
+    setUsers(prevUsers => [...prevUsers, newUser]);
     setUser(userWithoutPassword);
+
     localStorage.setItem('stocky_current_user', JSON.stringify(userWithoutPassword));
 
     return { success: true, user: userWithoutPassword };
@@ -96,12 +98,17 @@ export const AuthProvider = ({ children }) => {
   };
 
   const updateUser = (updates) => {
-    const updatedUser = { ...user, ...updates };
-    setUser(updatedUser);
-    localStorage.setItem('stocky_current_user', JSON.stringify(updatedUser));
+    setUser(prevUser => {
+      const updatedUser = { ...prevUser, ...updates };
+      localStorage.setItem('stocky_current_user', JSON.stringify(updatedUser));
 
-    // Update in users array
-    setUsers(users.map(u => u.id === user.id ? { ...u, ...updates } : u));
+      // Update in users array
+      setUsers(prevUsers => prevUsers.map(u =>
+        u.id === prevUser.id ? { ...u, ...updates } : u
+      ));
+
+      return updatedUser;
+    });
   };
 
   const followUser = (targetUserId) => {
@@ -112,14 +119,15 @@ export const AuthProvider = ({ children }) => {
       return { success: false, error: 'Already following' };
     }
 
+    const currentUserId = user.id;
     const newFollowing = [...following, targetUserId];
     updateUser({ following: newFollowing });
 
     // Update target user's followers
-    setUsers(users.map(u => {
+    setUsers(prevUsers => prevUsers.map(u => {
       if (u.id === targetUserId) {
         const followers = u.followers || [];
-        return { ...u, followers: [...followers, user.id] };
+        return { ...u, followers: [...followers, currentUserId] };
       }
       return u;
     }));
@@ -130,15 +138,16 @@ export const AuthProvider = ({ children }) => {
   const unfollowUser = (targetUserId) => {
     if (!user) return { success: false, error: 'Not logged in' };
 
+    const currentUserId = user.id;
     const following = user.following || [];
     const newFollowing = following.filter(id => id !== targetUserId);
     updateUser({ following: newFollowing });
 
     // Update target user's followers
-    setUsers(users.map(u => {
+    setUsers(prevUsers => prevUsers.map(u => {
       if (u.id === targetUserId) {
         const followers = u.followers || [];
-        return { ...u, followers: followers.filter(id => id !== user.id) };
+        return { ...u, followers: followers.filter(id => id !== currentUserId) };
       }
       return u;
     }));
