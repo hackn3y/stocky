@@ -39,6 +39,19 @@ const LoadingFallback = ({ darkMode }) => (
 // Force use Railway backend in production
 const API_URL = process.env.REACT_APP_API_URL || 'https://stocky-production-16bc.up.railway.app/api';
 
+// Utility function to check if symbol is cryptocurrency
+const isCrypto = (symbol) => {
+  return symbol && symbol.includes('-USD');
+};
+
+// Utility function to get asset type badge
+const getAssetBadge = (symbol) => {
+  if (isCrypto(symbol)) {
+    return { text: 'CRYPTO', color: 'bg-orange-100 text-orange-700 border-orange-300' };
+  }
+  return null;
+};
+
 // Utility functions for localStorage
 const getFromStorage = (key, defaultValue) => {
   try {
@@ -774,9 +787,16 @@ function App() {
           <PredictionSkeleton darkMode={darkMode} />
         ) : prediction ? (
           <div className={`${cardBg} rounded-lg shadow-md p-6 mb-6`}>
-            <h2 className={`text-2xl font-bold mb-6 ${textPrimary}`}>
-              Prediction for {prediction.symbol}
-            </h2>
+            <div className="flex items-center gap-3 mb-6">
+              <h2 className={`text-2xl font-bold ${textPrimary}`}>
+                Prediction for {prediction.symbol}
+              </h2>
+              {getAssetBadge(prediction.symbol) && (
+                <span className={`px-3 py-1 rounded-full text-xs font-bold border ${getAssetBadge(prediction.symbol).color}`}>
+                  {getAssetBadge(prediction.symbol).text}
+                </span>
+              )}
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Prediction Result */}

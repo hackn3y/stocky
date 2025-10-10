@@ -376,8 +376,13 @@ POPULAR_STOCKS = {
     # Gold/Commodities
     'GLD': 'SPDR Gold Trust', 'SLV': 'iShares Silver Trust', 'IAU': 'iShares Gold Trust',
 
-    # Crypto
-    'BTC-USD': 'Bitcoin USD', 'ETH-USD': 'Ethereum USD',
+    # Cryptocurrency
+    'BTC-USD': 'Bitcoin', 'ETH-USD': 'Ethereum', 'BNB-USD': 'Binance Coin',
+    'XRP-USD': 'Ripple', 'ADA-USD': 'Cardano', 'DOGE-USD': 'Dogecoin',
+    'SOL-USD': 'Solana', 'MATIC-USD': 'Polygon', 'DOT-USD': 'Polkadot',
+    'SHIB-USD': 'Shiba Inu', 'AVAX-USD': 'Avalanche', 'LTC-USD': 'Litecoin',
+    'LINK-USD': 'Chainlink', 'UNI-USD': 'Uniswap', 'ATOM-USD': 'Cosmos',
+    'XLM-USD': 'Stellar', 'ALGO-USD': 'Algorand', 'BCH-USD': 'Bitcoin Cash',
 
     # Other Popular
     'BA': 'Boeing Company', 'CAT': 'Caterpillar Inc.', 'IBM': 'IBM Corporation',
@@ -531,9 +536,13 @@ def get_risk_metrics(symbol):
 def list_assets():
     """List of supported assets for prediction"""
     assets = {
-        'etfs': ['SPY', 'IWF', 'SCHD', 'VOO', 'QQQ'],
-        'commodities': ['GLD', 'SLV'],
-        'crypto': ['BTC-USD', 'ETH-USD'],
+        'etfs': ['SPY', 'IWF', 'SCHD', 'VOO', 'QQQ', 'VTI', 'DIA'],
+        'commodities': ['GLD', 'SLV', 'IAU'],
+        'crypto': [
+            'BTC-USD', 'ETH-USD', 'BNB-USD', 'XRP-USD', 'ADA-USD', 'DOGE-USD',
+            'SOL-USD', 'MATIC-USD', 'DOT-USD', 'SHIB-USD', 'AVAX-USD', 'LTC-USD',
+            'LINK-USD', 'UNI-USD', 'ATOM-USD', 'XLM-USD', 'ALGO-USD', 'BCH-USD'
+        ],
         'note': 'Model is trained on SPY. Other assets may have varying accuracy.'
     }
     return jsonify({
