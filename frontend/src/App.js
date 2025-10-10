@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, lazy } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import axios from 'axios';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar } from 'recharts';
 import { TrendingUp, TrendingDown, Activity, Info, Moon, Sun, Star, StarOff, BarChart3, Download, Share2, Clock, ChevronDown, ChevronUp, User, LogOut, Search } from 'lucide-react';
@@ -596,51 +596,59 @@ function App() {
         </div>
 
         {/* Watchlist Enhanced */}
-        <WatchlistEnhanced
-          watchlist={watchlist}
-          onRemove={removeFromWatchlist}
-          onSelect={(ticker) => {
-            setSymbol(ticker);
-            getPrediction(ticker);
-            getHistoricalData(ticker);
-            getStockInfo(ticker);
-          }}
-          onBulkRefresh={bulkRefreshWatchlist}
-          darkMode={darkMode}
-        />
+        <Suspense fallback={<LoadingFallback darkMode={darkMode} />}>
+          <WatchlistEnhanced
+            watchlist={watchlist}
+            onRemove={removeFromWatchlist}
+            onSelect={(ticker) => {
+              setSymbol(ticker);
+              getPrediction(ticker);
+              getHistoricalData(ticker);
+              getStockInfo(ticker);
+            }}
+            onBulkRefresh={bulkRefreshWatchlist}
+            darkMode={darkMode}
+          />
+        </Suspense>
 
         {/* Comparison View Modal */}
         {showComparison && (
-          <ComparisonView
-            comparisonData={comparisonData}
-            comparisonSymbols={comparisonSymbols}
-            onClose={() => setShowComparison(false)}
-            onRemoveSymbol={(ticker) => {
-              removeComparisonSymbol(ticker);
-              setTimeout(fetchComparisonData, 100);
-            }}
-            onAddSymbol={(ticker) => {
-              addComparisonSymbol(ticker);
-              setTimeout(fetchComparisonData, 100);
-            }}
-            darkMode={darkMode}
-          />
+          <Suspense fallback={<LoadingFallback darkMode={darkMode} />}>
+            <ComparisonView
+              comparisonData={comparisonData}
+              comparisonSymbols={comparisonSymbols}
+              onClose={() => setShowComparison(false)}
+              onRemoveSymbol={(ticker) => {
+                removeComparisonSymbol(ticker);
+                setTimeout(fetchComparisonData, 100);
+              }}
+              onAddSymbol={(ticker) => {
+                addComparisonSymbol(ticker);
+                setTimeout(fetchComparisonData, 100);
+              }}
+              darkMode={darkMode}
+            />
+          </Suspense>
         )}
 
         {/* Portfolio Tracker */}
-        <Portfolio
-          portfolio={portfolio}
-          onAdd={addToPortfolio}
-          onRemove={removeFromPortfolio}
-          onUpdate={updatePortfolioPrices}
-          darkMode={darkMode}
-        />
+        <Suspense fallback={<LoadingFallback darkMode={darkMode} />}>
+          <Portfolio
+            portfolio={portfolio}
+            onAdd={addToPortfolio}
+            onRemove={removeFromPortfolio}
+            onUpdate={updatePortfolioPrices}
+            darkMode={darkMode}
+          />
+        </Suspense>
 
         {/* Accuracy Tracker */}
-        <AccuracyTracker
-          predictions={predictions}
-          darkMode={darkMode}
-        />
+        <Suspense fallback={<LoadingFallback darkMode={darkMode} />}>
+          <AccuracyTracker
+            predictions={predictions}
+            darkMode={darkMode}
+          />
+        </Suspense>
 
         {/* Error Message with Retry */}
         {error && !loading && (
@@ -986,50 +994,64 @@ function App() {
 
         {/* News Panel */}
         {prediction && (
-          <NewsPanel symbol={symbol} darkMode={darkMode} />
+          <Suspense fallback={<LoadingFallback darkMode={darkMode} />}>
+            <NewsPanel symbol={symbol} darkMode={darkMode} />
+          </Suspense>
         )}
 
         {/* Technical Chart with Indicators */}
         <div id="technical">
-          <TechnicalChart
-            historicalData={historicalData}
-            darkMode={darkMode}
-            symbol={symbol}
-          />
+          <Suspense fallback={<LoadingFallback darkMode={darkMode} />}>
+            <TechnicalChart
+              historicalData={historicalData}
+              darkMode={darkMode}
+              symbol={symbol}
+            />
+          </Suspense>
         </div>
 
         {/* Paper Trading Simulator */}
         <div id="trading">
-          <PaperTrading
-            darkMode={darkMode}
-            currentSymbol={symbol}
-            currentPrice={prediction?.current_price}
-            prediction={prediction}
-          />
+          <Suspense fallback={<LoadingFallback darkMode={darkMode} />}>
+            <PaperTrading
+              darkMode={darkMode}
+              currentSymbol={symbol}
+              currentPrice={prediction?.current_price}
+              prediction={prediction}
+            />
+          </Suspense>
         </div>
 
         {/* Performance Analytics */}
         <div id="performance">
-          <PerformanceAnalytics predictions={predictions} darkMode={darkMode} />
+          <Suspense fallback={<LoadingFallback darkMode={darkMode} />}>
+            <PerformanceAnalytics predictions={predictions} darkMode={darkMode} />
+          </Suspense>
         </div>
 
         {/* Social Feed */}
         <div id="social">
-          <SocialFeed darkMode={darkMode} />
+          <Suspense fallback={<LoadingFallback darkMode={darkMode} />}>
+            <SocialFeed darkMode={darkMode} />
+          </Suspense>
         </div>
 
         {/* Backtesting Dashboard */}
         <div id="backtesting">
-          <BacktestingDashboard predictions={predictions} darkMode={darkMode} />
+          <Suspense fallback={<LoadingFallback darkMode={darkMode} />}>
+            <BacktestingDashboard predictions={predictions} darkMode={darkMode} />
+          </Suspense>
         </div>
 
         {/* Alerts Panel */}
         <div id="alerts">
-          <AlertsPanel
-            darkMode={darkMode}
-            symbol={symbol}
-            currentPrice={prediction?.current_price}
-          />
+          <Suspense fallback={<LoadingFallback darkMode={darkMode} />}>
+            <AlertsPanel
+              darkMode={darkMode}
+              symbol={symbol}
+              currentPrice={prediction?.current_price}
+            />
+          </Suspense>
         </div>
 
         {/* Disclaimer */}
@@ -1053,11 +1075,15 @@ function App() {
 
       {/* Auth Modal */}
       {showAuthModal && (
-        <AuthModal onClose={() => setShowAuthModal(false)} darkMode={darkMode} />
+        <Suspense fallback={<LoadingFallback darkMode={darkMode} />}>
+          <AuthModal onClose={() => setShowAuthModal(false)} darkMode={darkMode} />
+        </Suspense>
       )}
 
       {/* AI Assistant */}
-      <AIAssistant darkMode={darkMode} symbol={symbol} prediction={prediction} />
+      <Suspense fallback={<LoadingFallback darkMode={darkMode} />}>
+        <AIAssistant darkMode={darkMode} symbol={symbol} prediction={prediction} />
+      </Suspense>
 
       {/* Toast Notifications */}
       <ToastContainer toasts={toasts} removeToast={removeToast} />
@@ -1066,14 +1092,16 @@ function App() {
       <NetworkStatus isOnline={isOnline} />
 
       {/* Mobile Navigation */}
-      <MobileNav
-        darkMode={darkMode}
-        onNavigate={(id) => {
-          if (id === 'info') {
-            setShowHowItWorks(true);
-          }
-        }}
-      />
+      <Suspense fallback={<LoadingFallback darkMode={darkMode} />}>
+        <MobileNav
+          darkMode={darkMode}
+          onNavigate={(id) => {
+            if (id === 'info') {
+              setShowHowItWorks(true);
+            }
+          }}
+        />
+      </Suspense>
     </div>
   );
 }
