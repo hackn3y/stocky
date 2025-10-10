@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, lazy, Suspense, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, lazy } from 'react';
 import axios from 'axios';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar } from 'recharts';
 import { TrendingUp, TrendingDown, Activity, Info, Moon, Sun, Star, StarOff, BarChart3, Download, Share2, Clock, ChevronDown, ChevronUp, User, LogOut, Search } from 'lucide-react';
