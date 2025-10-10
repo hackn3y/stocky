@@ -3,6 +3,7 @@ import pandas as pd
 import joblib
 import os
 from feature_engineering import calculate_technical_indicators, prepare_model_data
+from model_loader import load_model_safe
 
 def load_model():
     """Load trained model - enhanced if available, else original"""
@@ -13,13 +14,13 @@ def load_model():
     if os.path.exists(enhanced_model_path):
         try:
             print("Loading enhanced model...")
-            return joblib.load(enhanced_model_path), 'enhanced'
+            return load_model_safe(enhanced_model_path), 'enhanced'
         except Exception as e:
             print(f"Failed to load enhanced model: {e}")
 
     # Fall back to original
     print("Loading original model...")
-    return joblib.load(original_model_path), 'original'
+    return load_model_safe(original_model_path), 'original'
 
 def get_latest_data(symbol='SPY', period='2y'):
     """Get recent data for prediction"""
