@@ -1,8 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, Send, X, Bot, User } from 'lucide-react';
 
-function AIAssistant({ darkMode, symbol, prediction }) {
-  const [isOpen, setIsOpen] = useState(false);
+function AIAssistant({ darkMode, symbol, prediction, isOpen, setIsOpen }) {
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
+
+  // Use external control if provided, otherwise use internal state
+  const open = isOpen !== undefined ? isOpen : internalIsOpen;
+  const setOpen = setIsOpen !== undefined ? setIsOpen : setInternalIsOpen;
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
@@ -120,17 +124,17 @@ function AIAssistant({ darkMode, symbol, prediction }) {
 
   return (
     <>
-      {/* Floating Button */}
+      {/* Floating Button - Hidden on mobile (md:block) */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 p-4 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 transition-all z-40"
+        onClick={() => setOpen(!open)}
+        className="hidden md:block fixed bottom-6 right-6 p-4 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 transition-all z-40"
         title="AI Assistant"
       >
         <MessageCircle className="h-6 w-6" />
       </button>
 
       {/* Chat Window */}
-      {isOpen && (
+      {open && (
         <div className={`fixed bottom-24 right-6 w-96 max-w-[calc(100vw-3rem)] ${cardBg} rounded-lg shadow-2xl z-50 flex flex-col`}
              style={{ height: '500px', maxHeight: 'calc(100vh - 8rem)' }}>
           {/* Header */}
@@ -140,7 +144,7 @@ function AIAssistant({ darkMode, symbol, prediction }) {
               <h3 className={`font-bold ${textPrimary}`}>AI Trading Assistant</h3>
             </div>
             <button
-              onClick={() => setIsOpen(false)}
+              onClick={() => setOpen(false)}
               className={`${textSecondary} hover:${textPrimary}`}
             >
               <X className="h-5 w-5" />

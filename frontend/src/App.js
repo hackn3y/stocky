@@ -92,6 +92,7 @@ function App() {
 
   // Advanced features state
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showAIAssistant, setShowAIAssistant] = useState(false);
 
   // Stock search state
   const [searchResults, setSearchResults] = useState([]);
@@ -491,8 +492,8 @@ function App() {
                       setShowHistory(false);
                       setShowSearchResults(false);
                     }, 200)}
-                    className={`w-full px-4 py-3 pl-12 border-2 ${borderColor} rounded-lg focus:outline-none focus:border-indigo-500 text-lg font-semibold ${textPrimary} ${darkMode ? 'bg-gray-700' : 'bg-white'}`}
-                    placeholder="Search by name or symbol (e.g., Facebook, META, Apple)"
+                    className={`w-full px-4 py-4 md:py-3 pl-12 md:pl-12 text-base md:text-lg border-2 ${borderColor} rounded-lg focus:outline-none focus:border-indigo-500 font-semibold ${textPrimary} ${darkMode ? 'bg-gray-700' : 'bg-white'}`}
+                    placeholder="Search symbol (e.g., AAPL, META)"
                     disabled={loading}
                   />
                   <Search className={`absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 ${textSecondary}`} />
@@ -1084,7 +1085,13 @@ function App() {
 
       {/* AI Assistant */}
       <Suspense fallback={<LoadingFallback darkMode={darkMode} />}>
-        <AIAssistant darkMode={darkMode} symbol={symbol} prediction={prediction} />
+        <AIAssistant
+          darkMode={darkMode}
+          symbol={symbol}
+          prediction={prediction}
+          isOpen={showAIAssistant}
+          setIsOpen={setShowAIAssistant}
+        />
       </Suspense>
 
       {/* Toast Notifications */}
@@ -1100,6 +1107,8 @@ function App() {
           onNavigate={(id) => {
             if (id === 'info') {
               setShowHowItWorks(true);
+            } else if (id === 'ai') {
+              setShowAIAssistant(true);
             }
           }}
         />
